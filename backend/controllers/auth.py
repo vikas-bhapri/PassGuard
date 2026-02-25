@@ -76,3 +76,23 @@ def update_password(user_id: UUID, password_update: schema.UpdateUserPasswordReq
     db.commit()
     db.refresh(existing_user)
     return existing_user
+
+
+def delete_user(request_body: schema.DeleteUserRequest, user_id: UUID, db: Session):
+    existing_user = db.query(User).filter(User.id == user_id).first()
+
+    if not existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if not request_body.confirm_delete:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Account deletion not confirmed")
+
+    if not checkpw(request_body.password.encode('utf-8'), existing_user.hashed_password.encode('utf-8')):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Password is incorrect")
+
+    db.delete(existing_user)
+    db.commit()
+    return {"detail": "User deleted successfully"}

@@ -29,6 +29,12 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
+class DeleteUserRequest(BaseModel):
+    password: str = Field(..., min_length=8, max_length=72)
+    confirm_delete: bool = Field(...,
+                                 description="Must be True to confirm account deletion")
+
+
 class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None

@@ -22,7 +22,7 @@ def create_password(password_request: CreatePasswordRequest, db: Session, user_i
     return new_password
 
 
-def update_password(password_id: str, password_update: UpdatePasswordRequest, db: Session, user_id: str):
+def update_password(password_id: UUID, password_update: UpdatePasswordRequest, db: Session, user_id: UUID):
     existing_password = db.query(Passwords).filter(
         Passwords.id == password_id, Passwords.user_id == user_id).first()
 
@@ -38,7 +38,7 @@ def update_password(password_id: str, password_update: UpdatePasswordRequest, db
     return existing_password
 
 
-def get_password(password_id: str, db: Session, user_id: str):
+def get_password(password_id: UUID, db: Session, user_id: UUID):
     password_entry = db.query(Passwords).filter(
         Passwords.id == password_id, Passwords.user_id == user_id).first()
 
@@ -49,7 +49,7 @@ def get_password(password_id: str, db: Session, user_id: str):
     return password_entry
 
 
-def delete_password(password_id: str, db: Session, user_id: str):
+def delete_password(password_id: UUID, db: Session, user_id: UUID):
     password_entry = db.query(Passwords).filter(
         Passwords.id == password_id, Passwords.user_id == user_id).first()
 

@@ -7,7 +7,8 @@ from schemas.schema import (
     UserCreate,
     UserResponse,
     UserUpdate,
-    UpdateUserPasswordRequest
+    UpdateUserPasswordRequest,
+    DeleteUserRequest
 )
 from controllers import auth, login
 from uuid import UUID
@@ -41,3 +42,9 @@ def update_user(user: UserUpdate, db: Session = Depends(get_db), user_id=Depends
 @router.put("/update_password/", response_model=UserResponse, status_code=status.HTTP_200_OK)
 def update_password(password_update: UpdateUserPasswordRequest, db: Session = Depends(get_db), user_id=Depends(login.validate_user)):
     return auth.update_password(user_id, password_update, db)
+
+
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(request_body: DeleteUserRequest, db: Session = Depends(get_db), user_id=Depends(login.validate_user)):
+    auth.delete_user(request_body, user_id, db)
+    return None

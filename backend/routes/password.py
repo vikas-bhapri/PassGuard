@@ -27,15 +27,15 @@ def get_user_passwords(user_id: UUID = Depends(validate_user), db: Session = Dep
 
 
 @router.put("/{password_id}", response_model=GetPasswordResponse, status_code=status.HTTP_200_OK)
-def update_password(password_id: str, password_update: UpdatePasswordRequest, db: Session = Depends(get_db), user_id: str = Depends(validate_user)):
-    return password.update_password(password_id, password_update, db, user_id)
+def update_password(password_id: str, password_update: UpdatePasswordRequest, db: Session = Depends(get_db), user_id: UUID = Depends(validate_user)):
+    return password.update_password(UUID(password_id), password_update, db, user_id)
 
 
 @router.get("/{password_id}", response_model=GetPasswordResponse, status_code=status.HTTP_200_OK)
-def get_password(password_id: str, db: Session = Depends(get_db), user_id: str = Depends(validate_user)):
-    return password.get_password(password_id, db, user_id)
+def get_password(password_id: str, db: Session = Depends(get_db), user_id: UUID = Depends(validate_user)):
+    return password.get_password(UUID(password_id), db, user_id)
 
 
 @router.delete("/{password_id}", status_code=status.HTTP_200_OK)
-def delete_password(password_id: str, db: Session = Depends(get_db), user_id: str = Depends(validate_user)):
-    return password.delete_password(password_id, db, user_id)
+def delete_password(password_id: str, db: Session = Depends(get_db), user_id: UUID = Depends(validate_user)):
+    return password.delete_password(UUID(password_id), db, user_id)

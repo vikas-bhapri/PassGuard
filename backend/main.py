@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from config.database import engine, Base
-from routes import auth, passwords
+from routes import auth, password
 
 app = FastAPI(
     title="Password Manager Backend",
@@ -10,7 +10,7 @@ app = FastAPI(
 )
 
 app.include_router(auth.router)
-app.include_router(passwords.router)
+app.include_router(password.router)
 
 
 @app.get("/")
