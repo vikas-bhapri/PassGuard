@@ -15,6 +15,7 @@ class User(Base):
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     image_url = Column(String)
+    role = Column(String, default="user", nullable=False)
 
     tokens = relationship("AuthToken", back_populates="user",
                           cascade="all, delete-orphan")

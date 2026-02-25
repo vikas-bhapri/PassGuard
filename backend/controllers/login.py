@@ -56,9 +56,9 @@ def login_user(user: Union[OAuth2PasswordRequestForm, UserLogin], db: Session) -
     iat = datetime.utcnow()
 
     access_token = generate_token(
-        {"sub": db_user.username, "iat": iat, "uid": str(db_user.id)}, access_token_expires)
+        {"sub": db_user.username, "iat": iat, "uid": str(db_user.id), "role": db_user.role}, access_token_expires)
     refresh_token = generate_token(
-        {"sub": db_user.username, "type": "refresh", "iat": iat, "uid": str(db_user.id)}, refresh_token_expires)
+        {"sub": db_user.username, "type": "refresh", "iat": iat, "uid": str(db_user.id), "role": db_user.role}, refresh_token_expires)
 
     new_refresh_token_record = AuthToken(user_id=db_user.id, token=refresh_token, expires_at=(
         datetime.utcnow() + timedelta(seconds=refresh_token_expires)))
@@ -104,8 +104,42 @@ def validate_user(token: str = Depends(oauth2_scheme)):
         except (ValueError, TypeError):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user ID in token")
-        
+
         return user_uuid
     except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+
+def refresh_access_token(token: str, db: Session) -> TokenResponse:
+    if not JWT_SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="JWT configuration error")
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[
+                             JWT_ALGORITHM], audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
+        user_id = payload.get("uid")
+        token_type = payload.get("type")
+
+        if token_type != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+
+        # Check if the refresh token exists in the database
+        db_token = db.query(AuthToken).filter(
+            AuthToken.token == token).first()
+
+        if not db_token or db_token.expires_at < datetime.utcnow():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired or invalid")
+
+        # Generate a new access token
+        access_token_expires = int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES) * 60
+        new_access_token = generate_token(
+            {"sub": payload.get("sub"), "iat": datetime.utcnow(), "uid": user_id, "role": payload.get("role")}, access_token_expires)
+
+        return TokenResponse(access_token=new_access_token, refresh_token=token, type="bearer")
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")

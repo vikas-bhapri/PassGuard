@@ -1,6 +1,6 @@
 from config.database import get_db
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, Header, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from schemas.schema import (
     TokenResponse,
@@ -12,6 +12,7 @@ from schemas.schema import (
 )
 from controllers import auth, login
 from uuid import UUID
+from typing import Annotated
 
 router = APIRouter(
     prefix="/auth",
@@ -48,3 +49,12 @@ def update_password(password_update: UpdateUserPasswordRequest, db: Session = De
 def delete_user(request_body: DeleteUserRequest, db: Session = Depends(get_db), user_id=Depends(login.validate_user)):
     auth.delete_user(request_body, user_id, db)
     return None
+
+
+@router.get("/refresh_token", response_model=TokenResponse, status_code=status.HTTP_200_OK)
+def refresh_token(Authorization: Annotated[str | None, Header(...)], db: Session = Depends(get_db)):
+    if Authorization is None:
+        raise auth.HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                 detail="Authorization header missing")
+    access_token = Authorization
+    return login.refresh_access_token(access_token, db)
