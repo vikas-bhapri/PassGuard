@@ -1,0 +1,40 @@
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, UUID
+from sqlalchemy.orm import relationship
+from config.database import Base
+from uuid import uuid4
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid4)
+    username = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    image_url = Column(String)
+
+    tokens = relationship("AuthToken", back_populates="user", cascade="all, delete-orphan")
+    passwords = relationship("Passwords", back_populates="user", cascade="all, delete-orphan")
+
+
+class AuthToken(Base):
+    __tablename__ = "auth_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    token = Column(String, unique=True, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+
+    user = relationship("User", back_populates="tokens")
+
+class Passwords(Base):
+    __tablename__ = "passwords"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    service_name = Column(String, nullable=False)
+    username = Column(String, nullable=False)
+    password = Column(String, nullable=False)
+
+    user = relationship("User", back_populates="passwords")
