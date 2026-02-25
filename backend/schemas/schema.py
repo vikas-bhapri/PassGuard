@@ -111,3 +111,21 @@ class GetPasswordResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CreateServiceRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    image_url: Optional[str] = Field(None)
+
+
+class ServiceResponse(BaseModel):
+    id: UUID
+    name: str
+    image_url: Optional[str] = None
+
+    @field_serializer('id')
+    def serialize_id(self, value: UUID) -> str:
+        return str(value)
+
+    class Config:
+        from_attributes = True
