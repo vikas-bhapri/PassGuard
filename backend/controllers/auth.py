@@ -117,7 +117,7 @@ def password_reset_request(email: str, db: Session):
     existing_user = db.query(User).filter(User.email == email).first()
 
     if not existing_user:
-        return {}
+        return {"detail": "If the email exists, a password reset token has been sent"}
 
     # Generate a password reset token
     reset_token = secrets.token_urlsafe(32)
