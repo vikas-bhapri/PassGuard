@@ -46,6 +46,11 @@ class TokenResponse(BaseModel):
     refresh_token: str
 
 
+class UserPasswordResetRequest(BaseModel):
+    new_password: str = Field(..., min_length=8, max_length=72)
+    confirm_password: str = Field(..., min_length=8, max_length=72)
+
+
 class PasswordCreate(BaseModel):
     service_name: str = Field(..., min_length=1)
     username: str = Field(..., min_length=3)

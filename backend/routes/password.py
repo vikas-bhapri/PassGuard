@@ -5,7 +5,7 @@ from schemas.schema import (
     UpdatePasswordRequest,
     GetPasswordResponse
 )
-from config.database import get_db
+from core.database import get_db
 from controllers import password
 from .auth import validate_user
 from uuid import UUID

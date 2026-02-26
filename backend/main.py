@@ -1,6 +1,8 @@
 from fastapi import FastAPI
-from config.database import engine, Base
+from fastapi.middleware.cors import CORSMiddleware
+from core.database import engine, Base
 from routes import auth, password, services
+from core.config import CONFIG
 
 app = FastAPI(
     title="Password Manager Backend",
@@ -17,6 +19,16 @@ app.include_router(services.router)
 @app.get("/")
 def hello_world():
     return {"message": "Welcome to the Password Manager Backend API!"}
+
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CONFIG.ALLOWED_HOSTS,
+    allow_credentials=True,
+    allow_methods=CONFIG.ALLOWED_METHODS,
+    allow_headers=CONFIG.ALLOWED_HEADERS,
+)
 
 
 # Create the database tables

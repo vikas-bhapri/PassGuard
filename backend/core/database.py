@@ -1,13 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from core.config import CONFIG
 
 # Get the database connection string from environment variables
-DATABASE_CONN_STRING = os.getenv("DATABASE_CONN_STRIN") or "sqlite:///./test.db"
+# CONFIG.DATABASE_CONNECTION_STRING or "sqlite:///./test.db"
+DATABASE_CONN_STRING = CONFIG.DATABASE_CONNECTION_STRING or "sqlite:///./test.db"
 
 # Ensure that the connection string is set
 if not DATABASE_CONN_STRING:
@@ -23,6 +21,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # Dependency to get a database session
+
+
 def get_db():
     db = SessionLocal()
     try:

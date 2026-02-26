@@ -4,23 +4,20 @@ from schemas.schema import UserLogin, TokenResponse, TokenValidationRequest
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from bcrypt import checkpw
-import os
 from jose import jwt, JWTError
-from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from re import match
 from typing import Union
 from uuid import UUID
+from core.config import CONFIG
 
-load_dotenv()
 
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv(
-    "JWT_ACCESS_TOKEN_EXPIRE_MINUTES", 15)
-JWT_REFRESH_TOKEN_EXPIRE_DAYS = os.getenv("JWT_REFRESH_TOKEN_EXPIRE_DAYS", 7)
-JWT_ISSUER = os.getenv("JWT_ISSUER", "my_password_manager")
-JWT_AUDIENCE = os.getenv("JWT_AUDIENCE", "my_password_manager_users")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_SECRET_KEY = CONFIG.JWT_SECRET_KEY
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES = CONFIG.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+JWT_REFRESH_TOKEN_EXPIRE_DAYS = CONFIG.JWT_REFRESH_TOKEN_EXPIRE_DAYS
+JWT_ISSUER = CONFIG.JWT_ISSUER
+JWT_AUDIENCE = CONFIG.JWT_AUDIENCE
+JWT_ALGORITHM = CONFIG.JWT_ALGORITHM
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -130,7 +127,7 @@ def refresh_access_token(token: str, db: Session) -> TokenResponse:
         db_token = db.query(AuthToken).filter(
             AuthToken.token == token).first()
 
-        if not db_token or db_token.expires_at < datetime.utcnow():
+        if not db_token or db_token.expires_at < datetime.utcnow():  # type: ignore
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired or invalid")
 

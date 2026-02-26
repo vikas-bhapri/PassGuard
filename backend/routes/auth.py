@@ -1,5 +1,5 @@
-from config.database import get_db
-from fastapi import APIRouter, Depends, Header, status
+from core.database import get_db
+from fastapi import APIRouter, Depends, Header, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from schemas.schema import (
@@ -8,10 +8,11 @@ from schemas.schema import (
     UserResponse,
     UserUpdate,
     UpdateUserPasswordRequest,
-    DeleteUserRequest
+    DeleteUserRequest,
+    UserPasswordResetRequest
 )
 from controllers import auth, login
-from uuid import UUID
+from core.config import CONFIG
 from typing import Annotated
 
 router = APIRouter(
@@ -27,7 +28,17 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    return login.login_user(form_data, db)
+    result = login.login_user(form_data, db)
+    response = Response(content=result.json(), media_type="application/json")
+    response.set_cookie(
+        key="access_token", value=result.access_token, httponly=True, secure=True, samesite="strict",
+        expires=CONFIG.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+    response.set_cookie(
+        key="refresh_token", value=result.refresh_token, httponly=True, secure=True, samesite="strict",
+        expires=CONFIG.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+    )
+    return response
 
 
 @router.get("/validate_user", status_code=status.HTTP_200_OK)
@@ -58,3 +69,13 @@ def refresh_token(Authorization: Annotated[str | None, Header(...)], db: Session
                                  detail="Authorization header missing")
     access_token = Authorization
     return login.refresh_access_token(access_token, db)
+
+
+@router.post("/password_reset_request", status_code=status.HTTP_200_OK)
+def password_reset_request(email: str, db: Session = Depends(get_db)):
+    return auth.password_reset_request(email, db)
+
+
+@router.post("/reset_password", status_code=status.HTTP_200_OK)
+def password_reset(reset_token: str, passwords: UserPasswordResetRequest, db: Session = Depends(get_db)):
+    return auth.password_reset(reset_token, passwords, db)

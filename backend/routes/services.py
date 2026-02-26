@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from schemas.schema import CreateServiceRequest, ServiceResponse
-from config.database import get_db
+from core.database import get_db
 from controllers import service
 from .auth import validate_user
 from uuid import UUID

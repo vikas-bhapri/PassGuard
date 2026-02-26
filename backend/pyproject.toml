@@ -5,6 +5,7 @@ description = "A secure password manager backend built with FastAPI and SQLAlche
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "azure-communication-email>=1.1.0",
     "bcrypt>=5.0.0",
     "dotenv>=0.9.9",
     "fastapi>=0.133.0",
