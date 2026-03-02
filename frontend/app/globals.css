@@ -128,3 +128,7 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@utility auth-form-hero-background {
+  @apply bg-radial-[at_50%_50%] from-white to-zinc-500 to-95%;
+}
