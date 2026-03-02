@@ -30,13 +30,25 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     result = login.login_user(form_data, db)
     response = Response(content=result.json(), media_type="application/json")
+
+    # Use secure cookies only in production, allow cross-site for development
+    is_production = CONFIG.APP_ENV.lower() == "production"
+
     response.set_cookie(
-        key="access_token", value=result.access_token, httponly=True, secure=True, samesite="strict",
-        expires=CONFIG.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        key="access_token",
+        value=result.access_token,
+        httponly=True,
+        secure=is_production,
+        samesite="lax",
+        max_age=CONFIG.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
     response.set_cookie(
-        key="refresh_token", value=result.refresh_token, httponly=True, secure=True, samesite="strict",
-        expires=CONFIG.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+        key="refresh_token",
+        value=result.refresh_token,
+        httponly=True,
+        secure=is_production,
+        samesite="lax",
+        max_age=CONFIG.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
     )
     return response
 
@@ -46,19 +58,24 @@ def validate_user(token: str = Depends(login.oauth2_scheme)):
     return login.validate_user(token)
 
 
+@router.get("/", status_code=status.HTTP_200_OK, response_model=UserResponse)
+def get_user(db: Session = Depends(get_db), user_id: dict = Depends(login.validate_user)):
+    return auth.get_user(user_id["uid"], db)
+
+
 @router.patch("/", response_model=UserResponse, status_code=status.HTTP_200_OK)
-def update_user(user: UserUpdate, db: Session = Depends(get_db), user_id=Depends(login.validate_user)):
-    return auth.update_user(user_id, user, db)
+def update_user(user: UserUpdate, db: Session = Depends(get_db), user_id: dict = Depends(login.validate_user)):
+    return auth.update_user(user_id["uid"], user, db)
 
 
 @router.put("/update_password/", response_model=UserResponse, status_code=status.HTTP_200_OK)
-def update_password(password_update: UpdateUserPasswordRequest, db: Session = Depends(get_db), user_id=Depends(login.validate_user)):
-    return auth.update_password(user_id, password_update, db)
+def update_password(password_update: UpdateUserPasswordRequest, db: Session = Depends(get_db), user_id: dict = Depends(login.validate_user)):
+    return auth.update_password(user_id["uid"], password_update, db)
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(request_body: DeleteUserRequest, db: Session = Depends(get_db), user_id=Depends(login.validate_user)):
-    auth.delete_user(request_body, user_id, db)
+def delete_user(request_body: DeleteUserRequest, db: Session = Depends(get_db), user_id: dict = Depends(login.validate_user)):
+    auth.delete_user(request_body, user_id["uid"], db)
     return None
 
 

@@ -7,6 +7,9 @@ import { useForm, Controller } from "react-hook-form";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useDispatch } from "react-redux";
+import { loginUser } from "@/store/slices/userSlice";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,9 +27,9 @@ const formSchema = z.object({
 });
 
 const SignInForm = () => {
-  const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ detail?: string }>({});
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const dispatch = useDispatch();
 
   const formData = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -37,41 +40,29 @@ const SignInForm = () => {
   });
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    if (isLoading) return; // Prevent double submission
+
+    setIsLoading(true);
+
     try {
-      setSubmitting(true);
-      toast.promise(
-        (async () => {
-          const response = await fetch(
-            "http://localhost:8000/api/v1/auth/login",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              credentials: "include",
-              body: new URLSearchParams(data as Record<string, string>),
-            },
-          );
+      const result = await dispatch(loginUser(data));
 
-          const result = await response.json();
+      if (loginUser.rejected.match(result)) {
+        const errorMessage =
+          (result.payload as any)?.detail || "Invalid credentials";
+        toast.error(errorMessage);
+        setIsLoading(false); // Re-enable on error
+        return;
+      }
 
-          if (response.status === 401 || response.status === 400) {
-            setErrors(result);
-            throw new Error(result.detail || "Invalid credentials");
-          }
-
-          router.push("/home");
-        })(),
-        {
-          loading: "Attempting to sign in...",
-          success: "Signed in successfully! Redirecting...",
-          error: (err) => err.message || "Failed to sign in",
-        },
-      );
+      if (loginUser.fulfilled.match(result)) {
+        toast.success("Signed in successfully! Redirecting...");
+        router.push("/home");
+      }
     } catch (error) {
       console.log(error);
-    } finally {
-      setSubmitting(false);
+      toast.error("Failed to sign in");
+      setIsLoading(false); // Re-enable on error
     }
   };
 
@@ -115,8 +106,8 @@ const SignInForm = () => {
           Forgot Password?
         </Link>
       </FieldGroup>
-      <Button type="submit" className="w-full " disabled={submitting}>
-        {submitting ? "Signing In..." : "Sign In"}
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? "Signing In..." : "Sign In"}
       </Button>
     </form>
   );

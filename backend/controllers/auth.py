@@ -47,6 +47,16 @@ def create_user(user: schema.UserCreate, db: Session):
     return new_user
 
 
+def get_user(user_id: UUID, db: Session):
+    existing_user = db.query(User).filter(User.id == user_id).first()
+
+    if not existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    return existing_user
+
+
 def update_user(user_id: UUID, user_update: schema.UserUpdate, db: Session):
     existing_user = db.query(User).filter(User.id == user_id).first()
 
@@ -185,7 +195,7 @@ def password_reset(reset_token: str, passwords: schema.UserPasswordResetRequest,
     token_record = db.query(PasswordResetToken).filter(
         PasswordResetToken.token == hashed_token).first()
 
-    if not token_record or token_record.expires_at < datetime.utcnow():  # type: ignore
+    if not token_record or token_record.expires_at < datetime.utcnow() or token_record.used:  # type: ignore
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid or expired reset token")
 

@@ -82,7 +82,7 @@ def validate_user(token: str = Depends(oauth2_scheme)):
         # Decode the token and validate its claims
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[
                              JWT_ALGORITHM], audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
-        username = payload.get("sub")
+
         type = payload.get("type")
         user_id = payload.get("uid")
 
@@ -95,14 +95,7 @@ def validate_user(token: str = Depends(oauth2_scheme)):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
 
-        # Convert string user_id to UUID
-        try:
-            user_uuid = UUID(user_id)
-        except (ValueError, TypeError):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user ID in token")
-
-        return user_uuid
+        return payload
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")

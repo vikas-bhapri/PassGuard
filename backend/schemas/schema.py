@@ -20,6 +20,8 @@ class UserResponse(BaseModel):
     email: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    image_url: Optional[str] = None
+    role: str
 
     @field_serializer('id')
     def serialize_id(self, value: UUID) -> str:
