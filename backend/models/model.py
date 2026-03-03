@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, UUID
 from sqlalchemy.orm import relationship
 from core.database import Base
@@ -11,11 +13,23 @@ class User(Base):
                 index=True, default=uuid4)
     username = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     image_url = Column(String)
     role = Column(String, default="user", nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, onupdate=datetime.utcnow, nullable=True)
+
+    # Auth (challenge–response)
+    auth_algo = Column(String, nullable=False)           # "PBKDF2-SHA256"
+    auth_iterations = Column(Integer, nullable=False)
+    auth_salt_b64u = Column(String, nullable=False)
+    auth_verifier_b64u = Column(String, nullable=False)  # 32B key (base64url)
+
+    # Vault KDF
+    vault_algo = Column(String, nullable=False)
+    vault_iterations = Column(Integer, nullable=False)
+    vault_salt_b64u = Column(String, nullable=False)
 
     tokens = relationship("AuthToken", back_populates="user",
                           cascade="all, delete-orphan")
@@ -56,7 +70,10 @@ class Passwords(Base):
         "users.id"), nullable=False)
     service_name = Column(String, ForeignKey("services.name"), nullable=False)
     username = Column(String, nullable=False)
-    password = Column(String, nullable=False)
+    ciphertext_b64u = Column(String, nullable=False)
+    iv_b64u = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, onupdate=datetime.utcnow, nullable=True)
 
     user = relationship("User", back_populates="passwords")
 

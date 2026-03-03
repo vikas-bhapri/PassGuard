@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useDispatch } from "react-redux";
-import { loginUser } from "@/store/slices/userSlice";
+import { loginUser, getUserProfile } from "@/store/slices/userSlice";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/field";
 import { toast } from "sonner";
 import Link from "next/link";
+import { LogInIcon } from "lucide-react";
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters long"),
@@ -48,21 +49,28 @@ const SignInForm = () => {
       const result = await dispatch(loginUser(data));
 
       if (loginUser.rejected.match(result)) {
-        const errorMessage =
-          (result.payload as any)?.detail || "Invalid credentials";
-        toast.error(errorMessage);
-        setIsLoading(false); // Re-enable on error
+        setIsLoading(false);
+        toast.error(result.payload?.detail || "Login failed");
+        throw new Error("Login failed");
+      }
+      toast.success("Logged in successfully! Redirecting...");
+
+      const userDetails = await dispatch(getUserProfile());
+
+      if (getUserProfile.rejected.match(userDetails)) {
+        toast.error(
+          userDetails.payload?.detail || "Failed to fetch user profile",
+        );
         return;
       }
 
-      if (loginUser.fulfilled.match(result)) {
-        toast.success("Signed in successfully! Redirecting...");
-        router.push("/home");
-      }
+      router.push("/home");
+      formData.reset(); // Reset form after successful login
     } catch (error) {
       console.log(error);
-      toast.error("Failed to sign in");
       setIsLoading(false); // Re-enable on error
+    } finally {
+      setIsLoading(false); // Ensure loading state is reset
     }
   };
 
@@ -108,6 +116,7 @@ const SignInForm = () => {
       </FieldGroup>
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Signing In..." : "Sign In"}
+        <LogInIcon className="size-4 mr-2" />
       </Button>
     </form>
   );

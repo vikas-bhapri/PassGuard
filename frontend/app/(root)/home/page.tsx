@@ -1,18 +1,24 @@
 "use client";
 
-import React from "react";
-
+import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 const HomePage = () => {
-  const user = useSelector((state) => state?.user);
+  const user = useSelector((state: any) => state.user);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!user || !user.token) {
+      router.replace("/sign-in");
+    }
+  }, [user, router]);
 
   if (!user || !user.token) {
-    redirect("/sign-in");
+    return null; // Don't render anything while redirecting
   }
 
-  return <div>Welcome {user.user?.username}</div>;
+  return <div>Welcome </div>;
 };
 
 export default HomePage;

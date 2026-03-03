@@ -3,6 +3,47 @@ from typing import Optional
 from uuid import UUID
 
 
+class KDFParams(BaseModel):
+    algo: str
+    iterations: int
+    salt_b64u: str
+
+
+class RegisterRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: str = Field(...)
+    auth_algo: str
+    auth_iterations: int
+    auth_salt_b64u: str
+    auth_verifier_b64u: str
+    vault_kdf: KDFParams
+
+
+class LoginVerifyRequest(BaseModel):
+    user_id: str
+    challenge_b64u: str
+    proof_b64u: str
+
+
+class ChallengeResponse(BaseModel):
+    user_id: str
+    username: str
+    challenge_b64u: str
+    auth_kdf: KDFParams
+    vault_kdf: KDFParams
+
+
+class PasswordItemIn(BaseModel):
+    payload: dict
+    kdf: KDFParams
+
+
+class PasswordItemOut(BaseModel):
+    id: str
+    payload: dict
+    created_at: str
+
+
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: str = Field(...)

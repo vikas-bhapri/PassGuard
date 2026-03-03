@@ -1,7 +1,7 @@
 import ForgotPasswordForm from "@/app/components/auth/ForgotPasswordForm";
 import type { Metadata } from "next";
 
-import Link from "next/dist/client/link";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Forgot Password - Password Manager",

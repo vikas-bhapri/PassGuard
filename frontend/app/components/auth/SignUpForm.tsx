@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/field";
 import { toast } from "sonner";
 
+import { randomBytes, bufferToBase64Url } from "@/utils/encoding";
+import { deriveAuthKey, deriveVaultKey } from "@/crypto/kdf";
+
 const formSchema = z
   .object({
     username: z.string().min(3, "Username must be at least 3 characters long"),
@@ -55,35 +58,48 @@ const SignUpForm = () => {
     console.log(data);
     try {
       setSubmitting(true);
+      // Generate salts for KDF
+      const authSalt = randomBytes(16);
+      const vaultSalt = randomBytes(16);
 
-      await toast.promise(
-        (async () => {
-          const response = await fetch("http://localhost:8000/api/v1/auth/", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-            body: JSON.stringify(data),
-          });
+      // Derive keys for client-side encryption
+      const authKey = await deriveAuthKey(data.password, authSalt, 400_000);
+      const vaultKey = await deriveVaultKey(data.password, vaultSalt, 400_000);
 
-          const result = await response.json();
-
-          if (response.status === 401 || response.status === 400) {
-            setErrors(result);
-            throw new Error(result.detail || "Sign up failed");
-          }
-
-          router.push("/sign-in");
-        })(),
-        {
-          loading: "Creating your account...",
-          success: "Account created successfully! Sign in to continue.",
-          error: (err) => err.message || "Failed to create account",
+      const response = await fetch("http://localhost:8000/api/v1/auth/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          username: data.username,
+          email: data.email,
+          auth_algo: "PDKDF2-SHA256",
+          auth_iterations: 400000,
+          auth_salt_b64u: bufferToBase64Url(authSalt),
+          auth_verifier_b64u: bufferToBase64Url(authKey),
+          vault_kdf: {
+            algo: "PBKDF2-SHA256",
+            iterations: 400000,
+            salt_b64u: bufferToBase64Url(vaultSalt),
+          },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setErrors({ detail: result.detail || "Sign up failed" });
+        throw new Error(result.detail || "Sign up failed");
+      }
+
+      formData.reset();
+
+      toast.success("Signed up successfully! Redirecting...");
+      router.push("/sign-in");
     } catch (error) {
-      console.error("Error during sign up:", error);
+      console.log("Error during sign up:", error);
+      toast.error((error as Error).message || "Failed to sign up");
     } finally {
       setSubmitting(false);
     }
@@ -91,9 +107,6 @@ const SignUpForm = () => {
 
   return (
     <form className="w-sm" onSubmit={formData.handleSubmit(onSubmit)}>
-      <p className="text-red-500 font-semibold text-lg text-center mb-3 ">
-        {errors.detail}
-      </p>
       <FieldGroup className="mb-5 gap-3">
         <Controller
           name="username"

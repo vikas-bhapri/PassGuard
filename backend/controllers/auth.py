@@ -214,3 +214,51 @@ def password_reset(reset_token: str, passwords: schema.UserPasswordResetRequest,
     db.commit()
     db.refresh(user)
     return {"detail": "Password reset successful"}
+
+
+def register_user(user: schema.RegisterRequest, db: Session):
+    existing_user = db.query(User).filter(
+        (User.username == user.username) | (User.email == user.email)).first()
+
+    if existing_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Username or email already exists")
+
+    if not validate_email(user.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email format")
+
+    new_user = User(
+        email=user.email,
+        username=user.username,
+        auth_algo=user.auth_algo,
+        auth_iterations=user.auth_iterations,
+        auth_salt_b64u=user.auth_salt_b64u,
+        auth_verifier_b64u=user.auth_verifier_b64u,
+
+        vault_algo=user.vault_kdf.algo,
+        vault_iterations=user.vault_kdf.iterations,
+        vault_salt_b64u=user.vault_kdf.salt_b64u
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user
+
+
+def get_user_kdf_params(user_id: UUID, db: Session):
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    return {
+        "vault_kdf": {
+            "algo": user.vault_algo,
+            "iterations": user.vault_iterations,
+            "salt_b64u": user.vault_salt_b64u,
+        }
+    }

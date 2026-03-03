@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getUserProfileAPI, loginUserAPI, signUpUserAPI } from "../api/authAPI";
+import { getUserProfileAPI, loginUserAPI, signUpUserAPI, logoutAPI } from "../api/authAPI";
 
 export const loginUser = createAsyncThunk(
     "user/login",
@@ -37,6 +37,18 @@ export const getUserProfile = createAsyncThunk(
     }
 )
 
+export const logoutUser = createAsyncThunk(
+    "user/logout",
+    async (_, {rejectWithValue}) => {
+        try {
+            const response = await logoutAPI();
+            return response;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data || "Logout failed");
+        }
+    }
+)
+
 
 const userSlice = createSlice({
     name: "user",
@@ -46,12 +58,7 @@ const userSlice = createSlice({
         loading: false,
         error: null,
     },
-    reducers: {
-        logout: (state) => {
-            state.user = null;
-            state.token = null;
-        },
-    },
+    reducers: {},
     extraReducers: (builder) => {
         builder
         .addCase(loginUser.pending, (state) => {
@@ -80,9 +87,22 @@ const userSlice = createSlice({
             state.error = action.payload?.detail || "Failed to fetch user profile";
             state.user = null;
         })
+        .addCase(logoutUser.pending, (state) => {
+            state.loading = true;
+        })
+        .addCase(logoutUser.fulfilled, (state) => {
+            state.loading = false;
+            state.user = null;
+            state.token = null;
+            state.error = null;
+        })
+        .addCase(logoutUser.rejected, (state, action: any) => {
+            state.loading = false;
+            // Clear state even if logout API fails
+            state.user = null;
+            state.token = null;
+        })
     }
 })
-
-export const { logout } = userSlice.actions;
 
 export default userSlice.reducer;

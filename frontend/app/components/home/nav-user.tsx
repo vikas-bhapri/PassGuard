@@ -1,6 +1,14 @@
 "use client";
 
-import { BadgeCheck, ChevronsUpDown, LogOut } from "lucide-react";
+import {
+  BadgeCheck,
+  ChevronsUpDown,
+  LogOut,
+  Moon,
+  Sun,
+  Monitor,
+} from "lucide-react";
+import { useTheme } from "next-themes";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -20,6 +28,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useDispatch } from "react-redux";
+import { logoutUser } from "@/store/slices/userSlice";
 
 export function NavUser({
   user,
@@ -31,6 +41,15 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
+  const { setTheme, theme } = useTheme();
+  const dispatch = useDispatch();
+
+  const handleLogout = async () => {
+    // Call backend to clear httpOnly cookies
+    await dispatch(logoutUser());
+    // The page component will handle the redirect via useEffect
+  };
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -79,9 +98,27 @@ export function NavUser({
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                Theme
+              </DropdownMenuLabel>
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => setTheme("light")}>
+                  <Sun />
+                  Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>
+                  <Moon />
+                  Dark
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")}>
+                  <Monitor />
+                  System
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>

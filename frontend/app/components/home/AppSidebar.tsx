@@ -18,11 +18,7 @@ import {
   EvChargerIcon,
 } from "lucide-react";
 
-import { useSelector, useDispatch } from "react-redux";
-import { getUserProfile, logout } from "@/store/slices/userSlice";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useSelector } from "react-redux";
 import { NavUser } from "./nav-user";
 import Link from "next/link";
 import NavPassword from "./nav-password";
@@ -38,31 +34,7 @@ type User = {
 
 export function AppSidebar(props) {
   const user = useSelector((state: any) => state.user);
-  const dispatch = useDispatch();
-  const router = useRouter();
   const sidebar = useSidebar();
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const result = await dispatch(getUserProfile());
-
-      // Check if the request failed (invalid/expired token)
-      if (getUserProfile.rejected.match(result)) {
-        // Clear the invalid token and redirect to sign-in
-        dispatch(logout());
-        toast.error("Session expired. Please sign in again.");
-        router.push("/sign-in");
-      }
-    };
-
-    // Only fetch if we have a token
-    if (user.token) {
-      fetchProfile();
-    } else {
-      // No token, redirect to sign-in
-      router.push("/sign-in");
-    }
-  }, [dispatch, router, user.token]);
 
   const userData: User = user.user;
 
@@ -100,12 +72,17 @@ export function AppSidebar(props) {
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <Link href="#">
-                <EvChargerIcon className="size-5!" />
-                <span className="text-base font-semibold">
-                  My Password Manager
-                </span>
-              </Link>
+              <div className={`flex items-center gap-2`}>
+                <EvChargerIcon
+                  className="size-5!"
+                  onClick={() => sidebar.toggleSidebar()}
+                />
+                <Link href="#">
+                  <span className={`text-base text-center font-semibold`}>
+                    My Password Manager
+                  </span>
+                </Link>
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

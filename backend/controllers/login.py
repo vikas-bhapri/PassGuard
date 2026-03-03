@@ -1,14 +1,16 @@
+import secrets
+import base64
+import hmac
+import hashlib
 from models.model import User, AuthToken
 from sqlalchemy.orm import Session
-from schemas.schema import UserLogin, TokenResponse, TokenValidationRequest
-from fastapi import HTTPException, status, Depends
+from schemas.schema import UserLogin, TokenResponse, LoginVerifyRequest
+from fastapi import HTTPException, status, Depends, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from bcrypt import checkpw
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
-from re import match
-from typing import Union
-from uuid import UUID
+from typing import Dict, Union, Optional
 from core.config import CONFIG
 
 
@@ -19,7 +21,12 @@ JWT_ISSUER = CONFIG.JWT_ISSUER
 JWT_AUDIENCE = CONFIG.JWT_AUDIENCE
 JWT_ALGORITHM = CONFIG.JWT_ALGORITHM
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+# Make oauth2_scheme optional so it doesn't auto-error if Authorization header is missing
+# We'll check cookies first in validate_user
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+
+
+challenge_store: Dict[str, bytes] = {}
 
 
 def generate_token(payload: dict, expires_delta: int) -> str:
@@ -71,16 +78,24 @@ def login_user(user: Union[OAuth2PasswordRequestForm, UserLogin], db: Session) -
     return TokenResponse(access_token=access_token, refresh_token=refresh_token, type="bearer")
 
 # Validates the token and returns the username if valid, otherwise raises an HTTPException
-
-
-def validate_user(token: str = Depends(oauth2_scheme)):
+def validate_user(request: Request, token: Optional[str] = Depends(oauth2_scheme)):
     if not JWT_SECRET_KEY:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="JWT configuration error")
 
+    # Try to get token from cookies first, then fall back to Authorization header
+    access_token = request.cookies.get("access_token") or token
+    
+    if not access_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="No access token provided",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
     try:
         # Decode the token and validate its claims
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[
+        payload = jwt.decode(access_token, JWT_SECRET_KEY, algorithms=[
                              JWT_ALGORITHM], audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
 
         type = payload.get("type")
@@ -133,3 +148,80 @@ def refresh_access_token(token: str, db: Session) -> TokenResponse:
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+
+def login_challenge(username: str, db: Session):
+    user = db.query(User).filter(User.username == username).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    challenge = secrets.token_bytes(32)
+    challenge_store[str(user.username)] = challenge
+
+    challenge_b64u = base64.urlsafe_b64encode(
+        challenge).rstrip(b"=").decode('utf-8')
+
+    return {
+        "user_id": str(user.id),
+        "username": user.username,
+        "challenge_b64u": challenge_b64u,
+        "auth_kdf": {
+            "algo": user.auth_algo,
+            "iterations": user.auth_iterations,
+            "salt_b64u": user.auth_salt_b64u,
+        },
+        "vault_kdf": {
+            "algo": user.vault_algo,
+            "iterations": user.vault_iterations,
+            "salt_b64u": user.vault_salt_b64u,
+        }
+    }
+
+
+def login_verify(request: LoginVerifyRequest, db: Session):
+    user = db.query(User).filter(User.username == request.user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    expected_challenge = challenge_store.pop(str(user.username), None)
+    if not expected_challenge:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Challenge not found or already used")
+
+    key = base64.urlsafe_b64decode(
+        str(user.auth_verifier_b64u) + "==="[: (4 - len(str(user.auth_verifier_b64u)) % 4) % 4])  
+    sign = hmac.new(key, expected_challenge, hashlib.sha256).digest()
+    proof_bytes = base64.urlsafe_b64decode(
+        request.proof_b64u + "==="[: (4 - len(request.proof_b64u) % 4) % 4])
+
+    if not hmac.compare_digest(sign, proof_bytes):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid proof")
+
+    access_token_expires = int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES) * 60
+    refresh_token_expires = int(JWT_REFRESH_TOKEN_EXPIRE_DAYS) * 24 * 60 * 60
+
+    access_token = generate_token(
+        {"sub": user.username, "iat": datetime.utcnow(), "uid": str(user.id), "role": user.role}, access_token_expires)
+    refresh_token = generate_token(
+        {"sub": user.username, "type": "refresh", "iat": datetime.utcnow(), "uid": str(user.id), "role": user.role}, refresh_token_expires)
+
+    # Store refresh token in the database
+    new_refresh_token_record = AuthToken(
+        user_id=user.id, 
+        token=refresh_token, 
+        expires_at=(datetime.utcnow() + timedelta(seconds=refresh_token_expires))
+    )
+
+    # Delete old refresh tokens for the user
+    db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
+
+    # Add the new refresh token to the database
+    db.add(new_refresh_token_record)
+    db.commit()
+    db.refresh(new_refresh_token_record)
+
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token, type="bearer")

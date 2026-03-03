@@ -87,7 +87,7 @@ body {
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
+  --background: oklch(17.444% 0.01124 311.818);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
   --card-foreground: oklch(0.984 0.003 247.858);
@@ -130,5 +130,5 @@ body {
 }
 
 @utility auth-form-hero-background {
-  @apply bg-radial-[at_50%_50%] from-white to-zinc-500 to-95%;
+  @apply bg-[#0f172b];
 }

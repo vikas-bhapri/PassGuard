@@ -44,7 +44,16 @@ class Config:
     SENDER_EMAIL: Optional[str] = _get_env_var("SENDER_EMAIL")
     DEBUG: bool = _get_env_var("DEBUG", "False").lower() in ("true", "1", "t")
     APP_ENV: str = _get_env_var("APP_ENV", "development")
-    ALLOWED_HOSTS: list = _get_env_var("ALLOWED_HOSTS", "*").split(",")
+    
+    # CORS Configuration
+    # When using credentials, we cannot use wildcard "*"
+    # Default to FRONTEND_URL if ALLOWED_HOSTS not specified
+    _allowed_hosts_env = _get_env_var("ALLOWED_HOSTS", "")
+    ALLOWED_HOSTS: list = (
+        _allowed_hosts_env.split(",") if _allowed_hosts_env 
+        else [_get_env_var("FRONTEND_URL", "http://localhost:3000")]
+    )
+    
     ALLOWED_HEADERS: list = _get_env_var(
         "ALLOWED_HEADERS", "Authorization,Content-Type").split(",")
     ALLOWED_METHODS: list = _get_env_var(

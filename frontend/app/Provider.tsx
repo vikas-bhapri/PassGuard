@@ -2,6 +2,7 @@
 
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
+import { ThemeProvider } from "next-themes";
 
 import { store, persistor } from "../store/store";
 
@@ -13,7 +14,9 @@ export default function ReduxProvider({
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        {children}
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+        </ThemeProvider>
       </PersistGate>
     </Provider>
   );
