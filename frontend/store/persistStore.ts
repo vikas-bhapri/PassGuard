@@ -4,6 +4,7 @@ import storage from "redux-persist/lib/storage";
 import { persistReducer, persistStore } from "redux-persist";
 import { combineReducers } from "@reduxjs/toolkit";
 import userReducer from "./slices/userSlice";
+import kdfReducer from "./slices/kdfSlice";
 
 const persistConfig = {
     key: 'root',
@@ -13,6 +14,7 @@ const persistConfig = {
 
 const rootReducer = combineReducers({
     user: userReducer,
+    kdf: kdfReducer,
 })
 
 export const persistedReducer = persistReducer(persistConfig, rootReducer);

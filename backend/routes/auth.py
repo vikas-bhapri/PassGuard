@@ -41,6 +41,7 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
         httponly=True,
         secure=is_production,
         samesite="lax",
+        path="/",
         max_age=CONFIG.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
     response.set_cookie(
@@ -49,6 +50,7 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
         httponly=True,
         secure=is_production,
         samesite="lax",
+        path="/",
         max_age=CONFIG.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
     )
     return response
@@ -72,6 +74,7 @@ def login_verify(request: LoginVerifyRequest, db: Session = Depends(get_db)):
         httponly=True,
         secure=is_production,
         samesite="lax",
+        path="/",
         max_age=CONFIG.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
     response.set_cookie(
@@ -80,24 +83,26 @@ def login_verify(request: LoginVerifyRequest, db: Session = Depends(get_db)):
         httponly=True,
         secure=is_production,
         samesite="lax",
+        path="/",
         max_age=CONFIG.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
     )
     return response
 
 
 @router.get("/validate_user", status_code=status.HTTP_200_OK)
-def validate_user(token: str = Depends(login.oauth2_scheme)):
-    return login.validate_user(token)
+def validate_user(request: Request, token: str = Depends(login.oauth2_scheme)):
+    return login.validate_user(request, token)
 
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
 def logout(request: Request):
-    response = Response(content='{"message": "Logged out successfully"}', media_type="application/json")
-    
+    response = Response(
+        content='{"message": "Logged out successfully"}', media_type="application/json")
+
     # Delete cookies by setting them to expire immediately
     response.delete_cookie(key="access_token", path="/")
     response.delete_cookie(key="refresh_token", path="/")
-    
+
     return response
 
 
@@ -126,18 +131,30 @@ def delete_user(request_body: DeleteUserRequest, db: Session = Depends(get_db), 
 def refresh_token(request: Request, db: Session = Depends(get_db)):
     # Try to get refresh token from cookies first, then from Authorization header
     refresh_token_value = request.cookies.get("refresh_token")
-    
+
     if not refresh_token_value:
         # Fall back to Authorization header
         auth_header = request.headers.get("Authorization")
         if auth_header:
             refresh_token_value = auth_header.replace("Bearer ", "")
-    
+
     if not refresh_token_value:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                          detail="Refresh token missing")
-    
-    return login.refresh_access_token(refresh_token_value, db)
+                            detail="Refresh token missing")
+
+    result = login.refresh_access_token(refresh_token_value, db)
+    response = Response(content=result.model_dump_json(),
+                        media_type="application/json")
+    response.set_cookie(
+        key="access_token",
+        value=result.access_token,
+        httponly=True,
+        secure=CONFIG.APP_ENV.lower() == "production",
+        samesite="lax",
+        max_age=CONFIG.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+
+    return response
 
 
 @router.post("/password_reset_request", status_code=status.HTTP_200_OK)

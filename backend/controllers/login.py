@@ -64,16 +64,14 @@ def login_user(user: Union[OAuth2PasswordRequestForm, UserLogin], db: Session) -
     refresh_token = generate_token(
         {"sub": db_user.username, "type": "refresh", "iat": iat, "uid": str(db_user.id), "role": db_user.role}, refresh_token_expires)
 
-    new_refresh_token_record = AuthToken(user_id=db_user.id, token=refresh_token, expires_at=(
-        datetime.utcnow() + timedelta(seconds=refresh_token_expires)))
-
     # Delete the old refresh tokens for the user
     db.query(AuthToken).filter(AuthToken.user_id == db_user.id).delete()
 
     # Add the new refresh token to the database
+    new_refresh_token_record = AuthToken(user_id=db_user.id, token=refresh_token, expires_at=(
+        datetime.utcnow() + timedelta(seconds=refresh_token_expires)))
     db.add(new_refresh_token_record)
     db.commit()
-    db.refresh(new_refresh_token_record)
 
     return TokenResponse(access_token=access_token, refresh_token=refresh_token, type="bearer")
 
@@ -209,6 +207,9 @@ def login_verify(request: LoginVerifyRequest, db: Session):
     refresh_token = generate_token(
         {"sub": user.username, "type": "refresh", "iat": datetime.utcnow(), "uid": str(user.id), "role": user.role}, refresh_token_expires)
 
+    # Delete old refresh tokens for the user
+    db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
+
     # Store refresh token in the database
     new_refresh_token_record = AuthToken(
         user_id=user.id, 
@@ -216,12 +217,8 @@ def login_verify(request: LoginVerifyRequest, db: Session):
         expires_at=(datetime.utcnow() + timedelta(seconds=refresh_token_expires))
     )
 
-    # Delete old refresh tokens for the user
-    db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
-
     # Add the new refresh token to the database
     db.add(new_refresh_token_record)
     db.commit()
-    db.refresh(new_refresh_token_record)
 
     return TokenResponse(access_token=access_token, refresh_token=refresh_token, type="bearer")

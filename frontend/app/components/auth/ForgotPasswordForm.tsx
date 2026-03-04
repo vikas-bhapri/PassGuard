@@ -35,31 +35,26 @@ const ForgotPasswordForm = () => {
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     // TODO: Implement forgot password functionality
     try {
-      setSubmitting(true);
-      toast.promise(
-        (async () => {
-          const response = await fetch(
-            `http://localhost:8000/api/v1/auth/password_reset_request?email=${data.email}`,
-            {
-              method: "POST",
-              headers: {
-                Accept: "application/json",
-              },
-            },
-          );
-          const result = await response.json();
-
-          if (!response.ok) {
-            setErrors(result);
-            throw new Error(result.detail || "Something went wrong");
-          }
-        })(),
+      toast.info(
+        "If an account with that email exists, you will receive password reset instructions shortly.",
+      );
+      const response = await fetch(
+        `http://localhost:8000/api/v1/auth/password_reset_request?email=${data.email}`,
         {
-          loading: "Sending password reset instructions...",
-          success: "Password reset instructions sent successfully!",
-          error: errors.detail || "Failed to send password reset instructions",
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+          },
         },
       );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setErrors(result);
+        toast.error(result.detail || "Something went wrong");
+        throw new Error(result.detail || "Something went wrong");
+      }
     } catch (error) {
       console.log(error);
     } finally {

@@ -1,8 +1,9 @@
 import React from "react";
 import type { Metadata } from "next";
 
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "../components/home/AppSidebar";
+import TopNav from "../components/home/TopNav";
 
 export const homeMetadata: Metadata = {
   title: "Home",
@@ -12,10 +13,15 @@ export const homeMetadata: Metadata = {
 
 const layout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <main>{children}</main>
-    </SidebarProvider>
+    <>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <TopNav />
+          <main>{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </>
   );
 };
 

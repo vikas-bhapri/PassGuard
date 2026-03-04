@@ -189,7 +189,7 @@ def password_reset_request(email: str, db: Session):
     return {"detail": "If the email exists, a password reset token has been sent"}
 
 
-def password_reset(reset_token: str, passwords: schema.UserPasswordResetRequest, db: Session):
+def password_reset(reset_token: str, data: schema.UserPasswordResetRequest, db: Session):
     hashed_token = hashlib.sha256(reset_token.encode('utf-8')).hexdigest()
 
     token_record = db.query(PasswordResetToken).filter(
@@ -199,18 +199,17 @@ def password_reset(reset_token: str, passwords: schema.UserPasswordResetRequest,
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid or expired reset token")
 
-    if passwords.new_password != passwords.confirm_password:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="New password and confirm password do not match")
-
     user = db.query(User).filter(User.id == token_record.user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    hashed_password = hash_password(passwords.new_password)
-    user.hashed_password = hashed_password  # type: ignore
-    token_record.used = True  # type: ignore
+    setattr(user, "auth_salt_b64u", data.auth_salt_b64u)
+    setattr(user, "auth_verifier_b64u", data.auth_verifier_b64u)
+    setattr(user, "vault_salt_b64u", data.vault_salt_b64u)
+
+    setattr(token_record, "used", True)
+
     db.commit()
     db.refresh(user)
     return {"detail": "Password reset successful"}

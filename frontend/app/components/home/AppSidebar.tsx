@@ -16,6 +16,7 @@ import {
   NotebookPenIcon,
   Lightbulb,
   EvChargerIcon,
+  BotIcon
 } from "lucide-react";
 
 import { useSelector } from "react-redux";
@@ -73,13 +74,13 @@ export function AppSidebar(props) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <div className={`flex items-center gap-2`}>
-                <EvChargerIcon
+                <BotIcon
                   className="size-5!"
                   onClick={() => sidebar.toggleSidebar()}
                 />
                 <Link href="#">
                   <span className={`text-base text-center font-semibold`}>
-                    My Password Manager
+                    My Bitch
                   </span>
                 </Link>
               </div>

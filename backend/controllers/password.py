@@ -2,15 +2,32 @@ from fastapi import HTTPException, status
 from models.model import Passwords, Services
 from sqlalchemy.orm import Session
 from schemas.schema import (
-    CreatePasswordRequest,
-    UpdatePasswordRequest
+    PasswordItemIn,
+    UpdatePasswordRequest,
+    PasswordItemOut,
+    PasswordPayload
 )
 from uuid import UUID
 
 
-def create_password(password_request: CreatePasswordRequest, db: Session, user_id: UUID):
+def _password_model_to_response(password: Passwords) -> PasswordItemOut:
+    """Convert database Passwords model to PasswordItemOut schema"""
+    return PasswordItemOut(
+        id=str(password.id),
+        payload=PasswordPayload(
+            service=password.service_name,
+            username=password.username,
+            ciphertext_b64u=password.ciphertext_b64u,
+            iv_b64u=password.iv_b64u
+        ),
+        created_at=password.created_at.isoformat()
+    )
+
+
+def create_password(password_request: PasswordItemIn, db: Session, user_id: UUID):
     # Standardize service name to capitalized format
-    standardized_service_name = str(password_request.service_name).capitalize()
+    standardized_service_name = str(
+        password_request.payload.service).capitalize()
 
     # Check if service exists, if not create it
     service_exists = db.query(Services).filter(
@@ -27,14 +44,15 @@ def create_password(password_request: CreatePasswordRequest, db: Session, user_i
     new_password = Passwords(
         user_id=user_id,
         service_name=standardized_service_name,
-        username=password_request.username,
-        password=password_request.password
+        username=password_request.payload.username,
+        ciphertext_b64u=password_request.payload.ciphertext_b64u,
+        iv_b64u=password_request.payload.iv_b64u
     )
 
     db.add(new_password)
     db.commit()
     db.refresh(new_password)
-    return new_password
+    return _password_model_to_response(new_password)
 
 
 def update_password(password_id: UUID, password_update: UpdatePasswordRequest, db: Session, user_id: UUID):
@@ -50,7 +68,7 @@ def update_password(password_id: UUID, password_update: UpdatePasswordRequest, d
 
     db.commit()
     db.refresh(existing_password)
-    return existing_password
+    return _password_model_to_response(existing_password)
 
 
 def get_password(password_id: UUID, db: Session, user_id: UUID):
@@ -61,7 +79,7 @@ def get_password(password_id: UUID, db: Session, user_id: UUID):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Password entry not found")
 
-    return password_entry
+    return _password_model_to_response(password_entry)
 
 
 def delete_password(password_id: UUID, db: Session, user_id: UUID):
@@ -85,4 +103,4 @@ def get_user_passwords(user_id, db: Session):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="No password entries found for this user")
 
-    return user_passwords
+    return [_password_model_to_response(password) for password in user_passwords]

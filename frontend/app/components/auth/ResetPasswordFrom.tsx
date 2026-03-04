@@ -16,6 +16,8 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { toast } from "sonner";
+import { bufferToBase64Url, randomBytes } from "@/utils/encoding";
+import { deriveAuthKey, deriveVaultKey } from "@/crypto/kdf";
 
 const formSchema = z
   .object({
@@ -54,6 +56,14 @@ const ResetPasswordForm = () => {
       setSubmitting(true);
       toast.promise(
         (async () => {
+
+          const authSalt = randomBytes(16);
+          const vaultSalt = randomBytes(16);
+
+          // Derive auth key and vault key on the client side
+          const authKey = await deriveAuthKey(data.new_password, authSalt, 125000);
+          const vaultKey = await deriveVaultKey(data.new_password, vaultSalt, 125000);
+
           const response = await fetch(
             `http://localhost:8000/api/v1/auth/reset_password?reset_token=${token}`,
             {
@@ -61,7 +71,11 @@ const ResetPasswordForm = () => {
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify(data),
+              body: JSON.stringify({
+                auth_salt_b64u: bufferToBase64Url(authSalt),
+                auth_verifier_b64u: bufferToBase64Url(authKey),
+                vault_salt_b64u: bufferToBase64Url(vaultSalt),
+              }),
             },
           );
 

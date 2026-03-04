@@ -7,45 +7,52 @@ export async function middleware(request: NextRequest) {
     const refreshToken = request.cookies.get("refresh_token")?.value;
 
     // Exclude public routes from middleware
-    const publicRoutes = ["/sign-in", "/sign-up", "/about", "/contact"];
+    const publicRoutes = ["/sign-in", "/sign-up", "/about", "/contact", "/forgot-password", "/reset-password"];
     if (publicRoutes.some((route) => request.nextUrl.pathname.startsWith(route))) {
         return NextResponse.next();
     }
 
     if (!refreshToken) {
-        console.log("No refresh token found, redirecting to sign-in page...");
         return NextResponse.redirect(new URL("/sign-in", request.url));
     }
 
-    // if (!token) {
-    //     console.log("No access token found, trying to refresh...");
-    //     const refreshResponse = await fetch(`${backendUrl}/auth/refresh/`, {
-    //         method: "POST",
-    //         headers: {
-    //             "Content-Type": "application/json",
-    //             "Cookie": `refresh_token=${refreshToken}`,
-    //         },
-    //         credentials: "include",
-    //     });
+    if (!token) {
+        try {
+            const refreshResponse = await fetch(`http://localhost:8000/api/v1/auth/refresh_token`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Cookie": `refresh_token=${refreshToken}`,
+                    "Authorization": `Bearer ${refreshToken}`,
+                },
+                credentials: "include",
+            });
 
-    //     if (!refreshResponse.ok) {
-    //         console.error("Failed to refresh token");
-    //         return NextResponse.redirect(new URL("/sign-in", request.url));
-    //     }
+            if (!refreshResponse.ok) {
+                console.error("Failed to refresh token");
+                return NextResponse.redirect(new URL("/sign-in", request.url));
+            }
 
-    //     const data = await refreshResponse.json();
-    //     const newAccessToken = data.access_token;
+            const data = await refreshResponse.json();
 
-    //     const response = NextResponse.next();
-    //     response.cookies.set("token", newAccessToken, {
-    //         httpOnly: true,
-    //         path: "/",
-    //         sameSite: "strict",
-    //         maxAge: 60 * 30, // 30 minutes
-    //     });
+            const response = NextResponse.next();
+            
+            // Set the new access token cookie from the refresh response
+            if (data.access_token) {
+                response.cookies.set("access_token", data.access_token, {
+                    httpOnly: true,
+                    sameSite: "lax",
+                    path: "/",
+                    maxAge: 15 * 60, // 15 minutes
+                });
+            }
 
-    //     return response;
-    // }
+            return response;
+        } catch (error) {
+            console.error("Error refreshing token:", error);
+            return NextResponse.redirect(new URL("/sign-in", request.url));
+        }
+    }
 
     return NextResponse.next();
 }

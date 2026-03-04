@@ -15,14 +15,20 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
         <Image src={NextImage} alt="An Image" className="w-sm" />
         <h1 className="text-4xl font-semibold">My Password Manager</h1>
         <p className="text-xl">
-          Manage your passwords securely and efficiently.
+          Create and manage your passwords with ease. We follow zero-knowledge
+          principles to ensure your data is safe and private. Your security is
+          our priority.
         </p>
       </div>
       <div className="flex flex-col min-h-screen items-center justify-center bg-background w-full md:min-w-[60%]">
         <div className="md:hidden text-center flex flex-col items-center gap-6 justify-center mb-5">
           <Image src={NextImage} alt="An Image" />
           <h1>My Password Manager</h1>
-          <p>Manage your passwords securely and efficiently.</p>
+          <p>
+            Create and manage your passwords with ease. We follow zero-knowledge
+            principles to ensure your data is safe and private. Your security is
+            our priority.
+          </p>
         </div>
         {children}
       </div>

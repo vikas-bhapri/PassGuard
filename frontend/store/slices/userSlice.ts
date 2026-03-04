@@ -1,6 +1,23 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { getUserProfileAPI, loginUserAPI, signUpUserAPI, logoutAPI } from "../api/authAPI";
 
+interface User {
+    id: string;
+    username: string;
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    image_url?: string;
+    role?: string;
+}
+
+interface UserState {
+    user: User | null;
+    token: string | null;
+    loading: boolean;
+    error: string | null;
+}
+
 export const loginUser = createAsyncThunk(
     "user/login",
     async ({username, password}: {username: string, password: string}, {rejectWithValue}) => {
@@ -57,7 +74,7 @@ const userSlice = createSlice({
         token: null,
         loading: false,
         error: null,
-    },
+    } as UserState,
     reducers: {},
     extraReducers: (builder) => {
         builder
@@ -96,7 +113,7 @@ const userSlice = createSlice({
             state.token = null;
             state.error = null;
         })
-        .addCase(logoutUser.rejected, (state, action: any) => {
+        .addCase(logoutUser.rejected, (state) => {
             state.loading = false;
             // Clear state even if logout API fails
             state.user = null;

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 
 import { useDispatch } from "react-redux";
 import { loginUser, getUserProfile } from "@/store/slices/userSlice";
+import { AppDispatch } from "@/store/store";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,7 @@ const formSchema = z.object({
 const SignInForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   const formData = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,29 +47,25 @@ const SignInForm = () => {
     setIsLoading(true);
 
     try {
-      const result = await dispatch(loginUser(data));
+      toast.promise(
+        (async () => {
+          const result = await dispatch(loginUser(data)).unwrap();
+          await dispatch(getUserProfile()).unwrap();
 
-      if (loginUser.rejected.match(result)) {
-        setIsLoading(false);
-        toast.error(result.payload?.detail || "Login failed");
-        throw new Error("Login failed");
-      }
-      toast.success("Logged in successfully! Redirecting...");
+          router.push("/passwords");
+          formData.reset(); // Reset form after successful login
 
-      const userDetails = await dispatch(getUserProfile());
-
-      if (getUserProfile.rejected.match(userDetails)) {
-        toast.error(
-          userDetails.payload?.detail || "Failed to fetch user profile",
-        );
-        return;
-      }
-
-      router.push("/home");
-      formData.reset(); // Reset form after successful login
+          return result;
+        })(),
+        {
+          loading: "Signing in...",
+          success: "Login successful!",
+          error: "Login failed. Please check your credentials and try again.",
+        },
+      );
     } catch (error) {
-      console.log(error);
-      setIsLoading(false); // Re-enable on error
+      // Error is already handled by toast.promise
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false); // Ensure loading state is reset
     }

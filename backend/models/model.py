@@ -45,7 +45,7 @@ class AuthToken(Base):
     id = Column(UUID(as_uuid=True), primary_key=True,
                 index=True, default=uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey(
-        "users.id"), nullable=False)
+        "users.id"), nullable=False, index=True)
     token = Column(String, unique=True, nullable=False)
     expires_at = Column(DateTime, nullable=False)
 
@@ -74,6 +74,7 @@ class Passwords(Base):
     iv_b64u = Column(String, nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, onupdate=datetime.utcnow, nullable=True)
+    is_favorite = Column(Boolean, default=False, nullable=False)
 
     user = relationship("User", back_populates="passwords")
 

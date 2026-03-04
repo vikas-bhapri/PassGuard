@@ -33,14 +33,21 @@ class ChallengeResponse(BaseModel):
     vault_kdf: KDFParams
 
 
+class PasswordPayload(BaseModel):
+    service: str
+    username: str
+    ciphertext_b64u: str
+    iv_b64u: str
+
+
 class PasswordItemIn(BaseModel):
-    payload: dict
+    payload: PasswordPayload
     kdf: KDFParams
 
 
 class PasswordItemOut(BaseModel):
     id: str
-    payload: dict
+    payload: PasswordPayload
     created_at: str
 
 
@@ -90,8 +97,9 @@ class TokenResponse(BaseModel):
 
 
 class UserPasswordResetRequest(BaseModel):
-    new_password: str = Field(..., min_length=8, max_length=72)
-    confirm_password: str = Field(..., min_length=8, max_length=72)
+    auth_salt_b64u: str
+    auth_verifier_b64u: str
+    vault_salt_b64u: str
 
 
 class PasswordCreate(BaseModel):

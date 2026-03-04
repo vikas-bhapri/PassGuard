@@ -63,8 +63,8 @@ const SignUpForm = () => {
       const vaultSalt = randomBytes(16);
 
       // Derive keys for client-side encryption
-      const authKey = await deriveAuthKey(data.password, authSalt, 400_000);
-      const vaultKey = await deriveVaultKey(data.password, vaultSalt, 400_000);
+      const authKey = await deriveAuthKey(data.password, authSalt, 125000);
+      const vaultKey = await deriveVaultKey(data.password, vaultSalt, 125000);
 
       const response = await fetch("http://localhost:8000/api/v1/auth/", {
         method: "POST",
@@ -75,12 +75,12 @@ const SignUpForm = () => {
           username: data.username,
           email: data.email,
           auth_algo: "PDKDF2-SHA256",
-          auth_iterations: 400000,
+          auth_iterations: 125000,
           auth_salt_b64u: bufferToBase64Url(authSalt),
           auth_verifier_b64u: bufferToBase64Url(authKey),
           vault_kdf: {
             algo: "PBKDF2-SHA256",
-            iterations: 400000,
+            iterations: 125000,
             salt_b64u: bufferToBase64Url(vaultSalt),
           },
         }),

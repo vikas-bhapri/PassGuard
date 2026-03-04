@@ -54,3 +54,8 @@ export const logoutAPI = async () => {
     const response = await instance.post("auth/logout");
     return response.data;
 }
+
+export const getKdfAPI = async () => {
+    const response = await instance.get("auth/me/kdf");
+    return response.data;
+}

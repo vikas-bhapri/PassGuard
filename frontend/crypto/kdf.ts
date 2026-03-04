@@ -4,7 +4,7 @@ import { enc } from "@/utils/encoding";
 export async function deriveAuthKey(
     masterPassword: string,
     salt: ArrayBuffer,
-    iterations: number = 100_000
+    iterations: number = 125_000
 ) : Promise<ArrayBuffer> {
     const passKey = await crypto.subtle.importKey(
         "raw",
