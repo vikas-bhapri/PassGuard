@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 
 const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const token = request.cookies.get("access_token")?.value;
     const refreshToken = request.cookies.get("refresh_token")?.value;
 
