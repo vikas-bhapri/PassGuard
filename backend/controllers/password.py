@@ -3,7 +3,6 @@ from models.model import Passwords, Services
 from sqlalchemy.orm import Session
 from schemas.schema import (
     PasswordItemIn,
-    UpdatePasswordRequest,
     PasswordItemOut,
     PasswordPayload
 )
@@ -27,7 +26,7 @@ def _password_model_to_response(password: Passwords) -> PasswordItemOut:
 def create_password(password_request: PasswordItemIn, db: Session, user_id: UUID):
     # Standardize service name to capitalized format
     standardized_service_name = str(
-        password_request.payload.service).capitalize()
+        password_request.payload.service)[0].capitalize() + str(password_request.payload.service)[1:]
 
     # Check if service exists, if not create it
     service_exists = db.query(Services).filter(
@@ -55,7 +54,7 @@ def create_password(password_request: PasswordItemIn, db: Session, user_id: UUID
     return _password_model_to_response(new_password)
 
 
-def update_password(password_id: UUID, password_update: UpdatePasswordRequest, db: Session, user_id: UUID):
+def update_password(password_id: UUID, password_update: PasswordPayload, db: Session, user_id: UUID):
     existing_password = db.query(Passwords).filter(
         Passwords.id == password_id, Passwords.user_id == user_id).first()
 
@@ -92,15 +91,11 @@ def delete_password(password_id: UUID, db: Session, user_id: UUID):
 
     db.delete(password_entry)
     db.commit()
-    return {"detail": "Password entry deleted successfully"}
+    return {"id": str(password_id)}
 
 
 def get_user_passwords(user_id, db: Session):
     user_passwords = db.query(Passwords).filter(
         Passwords.user_id == user_id).all()
-
-    if not user_passwords:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="No password entries found for this user")
 
     return [_password_model_to_response(password) for password in user_passwords]

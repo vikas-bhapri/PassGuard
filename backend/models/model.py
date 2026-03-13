@@ -15,21 +15,24 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
-    image_url = Column(String)
+    image_url = Column(String, nullable=True)
+    hashed_password = Column(String, nullable=False)
     role = Column(String, default="user", nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, onupdate=datetime.utcnow, nullable=True)
+    new_user = Column(Boolean, default=True, nullable=False)
+    master_password_set = Column(Boolean, default=False, nullable=False)
 
     # Auth (challenge–response)
-    auth_algo = Column(String, nullable=False)           # "PBKDF2-SHA256"
-    auth_iterations = Column(Integer, nullable=False)
-    auth_salt_b64u = Column(String, nullable=False)
-    auth_verifier_b64u = Column(String, nullable=False)  # 32B key (base64url)
+    auth_algo = Column(String, nullable=True)           # "PBKDF2-SHA256"
+    auth_iterations = Column(Integer, nullable=True)
+    auth_salt_b64u = Column(String, nullable=True)
+    auth_verifier_b64u = Column(String, nullable=True)  # 32B key (base64url)
 
     # Vault KDF
-    vault_algo = Column(String, nullable=False)
-    vault_iterations = Column(Integer, nullable=False)
-    vault_salt_b64u = Column(String, nullable=False)
+    vault_algo = Column(String, nullable=True)
+    vault_iterations = Column(Integer, nullable=True)
+    vault_salt_b64u = Column(String, nullable=True)
 
     tokens = relationship("AuthToken", back_populates="user",
                           cascade="all, delete-orphan")

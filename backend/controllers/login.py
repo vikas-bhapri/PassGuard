@@ -23,7 +23,8 @@ JWT_ALGORITHM = CONFIG.JWT_ALGORITHM
 
 # Make oauth2_scheme optional so it doesn't auto-error if Authorization header is missing
 # We'll check cookies first in validate_user
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/v1/auth/login", auto_error=False)
 
 
 challenge_store: Dict[str, bytes] = {}
@@ -76,6 +77,8 @@ def login_user(user: Union[OAuth2PasswordRequestForm, UserLogin], db: Session) -
     return TokenResponse(access_token=access_token, refresh_token=refresh_token, type="bearer")
 
 # Validates the token and returns the username if valid, otherwise raises an HTTPException
+
+
 def validate_user(request: Request, token: Optional[str] = Depends(oauth2_scheme)):
     if not JWT_SECRET_KEY:
         raise HTTPException(
@@ -83,10 +86,10 @@ def validate_user(request: Request, token: Optional[str] = Depends(oauth2_scheme
 
     # Try to get token from cookies first, then fall back to Authorization header
     access_token = request.cookies.get("access_token") or token
-    
+
     if not access_token:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No access token provided",
             headers={"WWW-Authenticate": "Bearer"}
         )
@@ -190,7 +193,7 @@ def login_verify(request: LoginVerifyRequest, db: Session):
             status_code=status.HTTP_400_BAD_REQUEST, detail="Challenge not found or already used")
 
     key = base64.urlsafe_b64decode(
-        str(user.auth_verifier_b64u) + "==="[: (4 - len(str(user.auth_verifier_b64u)) % 4) % 4])  
+        str(user.auth_verifier_b64u) + "==="[: (4 - len(str(user.auth_verifier_b64u)) % 4) % 4])
     sign = hmac.new(key, expected_challenge, hashlib.sha256).digest()
     proof_bytes = base64.urlsafe_b64decode(
         request.proof_b64u + "==="[: (4 - len(request.proof_b64u) % 4) % 4])
@@ -199,26 +202,4 @@ def login_verify(request: LoginVerifyRequest, db: Session):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid proof")
 
-    access_token_expires = int(JWT_ACCESS_TOKEN_EXPIRE_MINUTES) * 60
-    refresh_token_expires = int(JWT_REFRESH_TOKEN_EXPIRE_DAYS) * 24 * 60 * 60
-
-    access_token = generate_token(
-        {"sub": user.username, "iat": datetime.utcnow(), "uid": str(user.id), "role": user.role}, access_token_expires)
-    refresh_token = generate_token(
-        {"sub": user.username, "type": "refresh", "iat": datetime.utcnow(), "uid": str(user.id), "role": user.role}, refresh_token_expires)
-
-    # Delete old refresh tokens for the user
-    db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
-
-    # Store refresh token in the database
-    new_refresh_token_record = AuthToken(
-        user_id=user.id, 
-        token=refresh_token, 
-        expires_at=(datetime.utcnow() + timedelta(seconds=refresh_token_expires))
-    )
-
-    # Add the new refresh token to the database
-    db.add(new_refresh_token_record)
-    db.commit()
-
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token, type="bearer")
+    return {"status": "success", "message": "Verification successful"}

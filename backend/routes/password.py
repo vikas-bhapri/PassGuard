@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from schemas.schema import (
     PasswordItemIn,
-    UpdatePasswordRequest,
+    PasswordPayload,
     PasswordItemOut
 )
 from core.database import get_db
@@ -27,7 +27,7 @@ def get_user_passwords(user_id: dict = Depends(validate_user), db: Session = Dep
 
 
 @router.put("/{password_id}", response_model=PasswordItemOut, status_code=status.HTTP_200_OK)
-def update_password(password_id: str, password_update: UpdatePasswordRequest, db: Session = Depends(get_db), user_id: dict = Depends(validate_user)):
+def update_password(password_id: str, password_update: PasswordPayload, db: Session = Depends(get_db), user_id: dict = Depends(validate_user)):
     return password.update_password(UUID(password_id), password_update, db, user_id.get("uid"))
 
 

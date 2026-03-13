@@ -64,6 +64,10 @@ def update_user(user_id: UUID, user_update: schema.UserUpdate, db: Session):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    if user_update.first_name is not None and len(user_update.first_name) < 3:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="First name must be at least 3 characters long")
+
     for field, value in user_update.dict(exclude_unset=True).items():
         if value is not None:
             setattr(existing_user, field, value)
@@ -204,9 +208,12 @@ def password_reset(reset_token: str, data: schema.UserPasswordResetRequest, db: 
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    setattr(user, "auth_salt_b64u", data.auth_salt_b64u)
-    setattr(user, "auth_verifier_b64u", data.auth_verifier_b64u)
-    setattr(user, "vault_salt_b64u", data.vault_salt_b64u)
+    if data.new_password != data.confirm_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="New password and confirm password do not match")
+
+    hashed_password = hash_password(data.new_password)
+    setattr(user, "hashed_password", hashed_password)
 
     setattr(token_record, "used", True)
 
@@ -215,36 +222,36 @@ def password_reset(reset_token: str, data: schema.UserPasswordResetRequest, db: 
     return {"detail": "Password reset successful"}
 
 
-def register_user(user: schema.RegisterRequest, db: Session):
-    existing_user = db.query(User).filter(
-        (User.username == user.username) | (User.email == user.email)).first()
+# def register_user(user: schema.RegisterRequest, db: Session):
+#     existing_user = db.query(User).filter(
+#         (User.username == user.username) | (User.email == user.email)).first()
 
-    if existing_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Username or email already exists")
+#     if existing_user:
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+#                             detail="Username or email already exists")
 
-    if not validate_email(user.email):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email format")
+#     if not validate_email(user.email):
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email format")
 
-    new_user = User(
-        email=user.email,
-        username=user.username,
-        auth_algo=user.auth_algo,
-        auth_iterations=user.auth_iterations,
-        auth_salt_b64u=user.auth_salt_b64u,
-        auth_verifier_b64u=user.auth_verifier_b64u,
+#     new_user = User(
+#         email=user.email,
+#         username=user.username,
+#         auth_algo=user.auth_algo,
+#         auth_iterations=user.auth_iterations,
+#         auth_salt_b64u=user.auth_salt_b64u,
+#         auth_verifier_b64u=user.auth_verifier_b64u,
 
-        vault_algo=user.vault_kdf.algo,
-        vault_iterations=user.vault_kdf.iterations,
-        vault_salt_b64u=user.vault_kdf.salt_b64u
-    )
+#         vault_algo=user.vault_kdf.algo,
+#         vault_iterations=user.vault_kdf.iterations,
+#         vault_salt_b64u=user.vault_kdf.salt_b64u
+#     )
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+#     db.add(new_user)
+#     db.commit()
+#     db.refresh(new_user)
 
-    return new_user
+#     return new_user
 
 
 def get_user_kdf_params(user_id: UUID, db: Session):
@@ -261,3 +268,25 @@ def get_user_kdf_params(user_id: UUID, db: Session):
             "salt_b64u": user.vault_salt_b64u,
         }
     }
+
+
+def create_master_password(user_id: str, request: schema.MasterPasswordRequest, db: Session):
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    setattr(user, "auth_algo", request.auth_algo)
+    setattr(user, "auth_iterations", request.auth_iterations)
+    setattr(user, "auth_salt_b64u", request.auth_salt_b64u)
+    setattr(user, "auth_verifier_b64u", request.auth_verifier_b64u)
+    setattr(user, "vault_algo", request.vault_kdf.algo)
+    setattr(user, "vault_iterations", request.vault_kdf.iterations)
+    setattr(user, "vault_salt_b64u", request.vault_kdf.salt_b64u)
+    setattr(user, "master_password_set", True)
+    setattr(user, "new_user", False)
+
+    db.commit()
+    db.refresh(user)
+    return user

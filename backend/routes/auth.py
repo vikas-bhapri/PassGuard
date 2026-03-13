@@ -1,17 +1,19 @@
 from core.database import get_db
-from fastapi import APIRouter, Depends, Header, status, Response, Request, HTTPException
+from fastapi import APIRouter, Depends, status, Response, Request, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from models.model import AuthToken
 from schemas.schema import (
     TokenResponse,
-    RegisterRequest,
+    MasterPasswordRequest,
     UserResponse,
     UserUpdate,
     UpdateUserPasswordRequest,
     DeleteUserRequest,
     UserPasswordResetRequest,
     ChallengeResponse,
-    LoginVerifyRequest
+    LoginVerifyRequest,
+    UserCreate
 )
 from controllers import auth, login
 from core.config import CONFIG
@@ -23,8 +25,8 @@ router = APIRouter(
 
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register_user(user: RegisterRequest, db: Session = Depends(get_db)):
-    return auth.register_user(user, db)
+def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    return auth.create_user(user, db)
 
 
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
@@ -61,32 +63,9 @@ def login_challenge(username: str, db: Session = Depends(get_db)):
     return login.login_challenge(username, db)
 
 
-@router.post("/login/verify", response_model=TokenResponse, status_code=status.HTTP_200_OK)
+@router.post("/login/verify", status_code=status.HTTP_200_OK)
 def login_verify(request: LoginVerifyRequest, db: Session = Depends(get_db)):
-    result = login.login_verify(request, db)
-    response = Response(content=result.json(), media_type="application/json")
-
-    # Use secure cookies only in production, allow cross-site for development
-    is_production = CONFIG.APP_ENV.lower() == "production"
-    response.set_cookie(
-        key="access_token",
-        value=result.access_token,
-        httponly=True,
-        secure=is_production,
-        samesite="lax",
-        path="/",
-        max_age=CONFIG.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=result.refresh_token,
-        httponly=True,
-        secure=is_production,
-        samesite="lax",
-        path="/",
-        max_age=CONFIG.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
-    )
-    return response
+    return login.login_verify(request, db)
 
 
 @router.get("/validate_user", status_code=status.HTTP_200_OK)
@@ -95,9 +74,18 @@ def validate_user(request: Request, token: str = Depends(login.oauth2_scheme)):
 
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
-def logout(request: Request):
+def logout(request: Request, user_id: dict = Depends(login.validate_user), db: Session = Depends(get_db)):
     response = Response(
         content='{"message": "Logged out successfully"}', media_type="application/json")
+
+    user = db.query(auth.User).filter(auth.User.id == user_id["uid"]).first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="User not found")
+
+    db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
+    db.commit()
 
     # Delete cookies by setting them to expire immediately
     response.delete_cookie(key="access_token", path="/")
@@ -151,6 +139,7 @@ def refresh_token(request: Request, db: Session = Depends(get_db)):
         httponly=True,
         secure=CONFIG.APP_ENV.lower() == "production",
         samesite="lax",
+        path="/",
         max_age=CONFIG.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
 
@@ -170,3 +159,9 @@ def password_reset(reset_token: str, passwords: UserPasswordResetRequest, db: Se
 @router.get("/me/kdf", status_code=status.HTTP_200_OK)
 def me_kdf(db: Session = Depends(get_db), user_id: dict = Depends(login.validate_user)):
     return auth.get_user_kdf_params(user_id["uid"], db)
+
+
+@router.post("/master_password", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
+def create_master_password(request: MasterPasswordRequest, db: Session = Depends(get_db), user_id: dict = Depends(login.validate_user)):
+    result = auth.create_master_password(user_id["uid"], request, db)
+    return result

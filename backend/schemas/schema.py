@@ -9,9 +9,7 @@ class KDFParams(BaseModel):
     salt_b64u: str
 
 
-class RegisterRequest(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
-    email: str = Field(...)
+class MasterPasswordRequest(BaseModel):
     auth_algo: str
     auth_iterations: int
     auth_salt_b64u: str
@@ -70,6 +68,8 @@ class UserResponse(BaseModel):
     last_name: Optional[str] = None
     image_url: Optional[str] = None
     role: str
+    master_password_set: bool
+    new_user: bool
 
     @field_serializer('id')
     def serialize_id(self, value: UUID) -> str:
@@ -88,6 +88,7 @@ class DeleteUserRequest(BaseModel):
 class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
@@ -96,10 +97,15 @@ class TokenResponse(BaseModel):
     refresh_token: str
 
 
-class UserPasswordResetRequest(BaseModel):
+class MasterPasswordResetRequest(BaseModel):
     auth_salt_b64u: str
     auth_verifier_b64u: str
     vault_salt_b64u: str
+
+
+class UserPasswordResetRequest(BaseModel):
+    new_password: str = Field(..., min_length=8, max_length=72)
+    confirm_password: str = Field(..., min_length=8, max_length=72)
 
 
 class PasswordCreate(BaseModel):
@@ -151,7 +157,7 @@ class CreatePasswordRequest(BaseModel):
 class UpdatePasswordRequest(BaseModel):
     service_name: Optional[str] = Field(None, min_length=1)
     username: Optional[str] = Field(None, min_length=3)
-    password: Optional[str] = Field(None, min_length=8, max_length=72)
+    
 
 
 class GetPasswordResponse(BaseModel):
