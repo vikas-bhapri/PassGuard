@@ -16,6 +16,8 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { toast } from "sonner";
+import { requestPasswordResetAPI } from "@/store/api/authAPI";
+import { AxiosError } from "axios";
 
 const formSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email address"),
@@ -23,7 +25,6 @@ const formSchema = z.object({
 
 const ForgotPasswordForm = () => {
   const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ detail?: string }>({});
 
   const formData = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -33,30 +34,42 @@ const ForgotPasswordForm = () => {
   });
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    // TODO: Implement forgot password functionality
+    if (submitting) return; // Prevent double submission
+
+    setSubmitting(true);
+
     try {
-      toast.info(
+      await requestPasswordResetAPI(data.email);
+
+      // Always show success message for security (don't reveal if email exists)
+      toast.success(
         "If an account with that email exists, you will receive password reset instructions shortly.",
       );
-      const response = await fetch(
-        `http://localhost:8000/api/v1/auth/password_reset_request?email=${data.email}`,
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-          },
-        },
-      );
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        setErrors(result);
-        toast.error(result.detail || "Something went wrong");
-        throw new Error(result.detail || "Something went wrong");
-      }
+      formData.reset();
     } catch (error) {
-      console.log(error);
+      console.error("Password reset request error:", error);
+
+      let errorMessage = "Failed to send reset email. Please try again later.";
+
+      if (error instanceof AxiosError) {
+        // Handle specific API error responses
+        if (error.response?.status === 429) {
+          errorMessage =
+            "Too many requests. Please wait a few minutes before trying again.";
+        } else if (error.response?.status === 422) {
+          errorMessage =
+            "Invalid email format. Please check your email address.";
+        } else if (error.response?.data?.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.message) {
+          errorMessage = `Network error: ${error.message}`;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 
 const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+const env = process.env.ENVIRONMENT || "development";
 
 export async function proxy(request: NextRequest) {
     const token = request.cookies.get("access_token")?.value;
@@ -18,7 +19,7 @@ export async function proxy(request: NextRequest) {
 
     if (!token) {
         try {
-            const refreshResponse = await fetch(`http://localhost:8000/api/v1/auth/refresh_token`, {
+            const refreshResponse = await fetch(`${backendUrl}auth/refresh_token`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -44,6 +45,7 @@ export async function proxy(request: NextRequest) {
                     sameSite: "lax",
                     path: "/",
                     maxAge: 15 * 60, // 15 minutes
+                    secure: env === "production",
                 });
             }
 

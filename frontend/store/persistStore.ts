@@ -5,6 +5,7 @@ import { persistReducer, persistStore } from "redux-persist";
 import { combineReducers } from "@reduxjs/toolkit";
 import userReducer from "./slices/userSlice";
 import kdfReducer from "./slices/kdfSlice";
+import passwordReducer from "./slices/passwordSlice";
 
 const persistConfig = {
     key: 'root',
@@ -15,6 +16,7 @@ const persistConfig = {
 const rootReducer = combineReducers({
     user: userReducer,
     kdf: kdfReducer,
+    passwords: passwordReducer,
 })
 
 export const persistedReducer = persistReducer(persistConfig, rootReducer);

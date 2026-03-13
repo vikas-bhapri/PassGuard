@@ -3,9 +3,9 @@
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
-import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,8 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { toast } from "sonner";
-import { bufferToBase64Url, randomBytes } from "@/utils/encoding";
-import { deriveAuthKey, deriveVaultKey } from "@/crypto/kdf";
+import { resetPasswordAPI } from "@/store/api/authAPI";
+import { AxiosError } from "axios";
 
 const formSchema = z
   .object({
@@ -35,10 +35,9 @@ const formSchema = z
 
 const ResetPasswordForm = () => {
   const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ detail?: string }>({});
+  const [tokenValid, setTokenValid] = useState(true);
   const router = useRouter();
 
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -50,53 +49,63 @@ const ResetPasswordForm = () => {
     },
   });
 
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    // TODO: Implement reset password functionality
-    try {
-      setSubmitting(true);
-      toast.promise(
-        (async () => {
-
-          const authSalt = randomBytes(16);
-          const vaultSalt = randomBytes(16);
-
-          // Derive auth key and vault key on the client side
-          const authKey = await deriveAuthKey(data.new_password, authSalt, 125000);
-          const vaultKey = await deriveVaultKey(data.new_password, vaultSalt, 125000);
-
-          const response = await fetch(
-            `http://localhost:8000/api/v1/auth/reset_password?reset_token=${token}`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                auth_salt_b64u: bufferToBase64Url(authSalt),
-                auth_verifier_b64u: bufferToBase64Url(authKey),
-                vault_salt_b64u: bufferToBase64Url(vaultSalt),
-              }),
-            },
-          );
-
-          const result = await response.json();
-
-          if (!response.ok) {
-            setErrors(result.detail);
-            throw new Error(result.detail || "Failed to reset password");
-          }
-
-          router.push("/sign-in");
-        })(),
-        {
-          loading: "Resetting password...",
-          success:
-            "Password reset successfully! Redirecting to sign in page...",
-          error: (err) => err.message || "Failed to reset password",
-        },
+  // Validate token on mount
+  useEffect(() => {
+    if (!token) {
+      setTokenValid(false);
+      toast.error(
+        "Invalid or missing reset token. Please request a new password reset.",
       );
+    }
+  }, [token]);
+
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    if (!token) {
+      toast.error("Invalid or missing reset token");
+      return;
+    }
+
+    if (submitting) return; // Prevent double submission
+
+    setSubmitting(true);
+
+    try {
+      await resetPasswordAPI(data, token);
+
+      toast.success(
+        "Password reset successful! Please log in with your new password.",
+      );
+
+      formData.reset();
+      router.push("/sign-in");
     } catch (error) {
-      console.log(error);
+      console.error("Reset password error:", error);
+
+      let errorMessage = "Failed to reset password. Please try again.";
+
+      if (error instanceof AxiosError) {
+        // Handle specific API error responses
+        if (error.response?.status === 400) {
+          errorMessage =
+            error.response?.data?.detail ||
+            "Invalid reset token or token has expired. Please request a new password reset.";
+        } else if (error.response?.status === 404) {
+          errorMessage =
+            "Reset token not found. Please request a new password reset.";
+        } else if (error.response?.status === 422) {
+          errorMessage =
+            error.response?.data?.detail ||
+            "Invalid password format. Please check your password meets the requirements.";
+        } else if (error.response?.data?.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.message) {
+          errorMessage = `Network error: ${error.message}`;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -142,8 +151,12 @@ const ResetPasswordForm = () => {
           )}
         />
       </FieldGroup>
-      <Button type="submit" className="w-full my-3" disabled={submitting}>
-        {submitting ? "Submitting..." : "Submit"}
+      <Button
+        type="submit"
+        className="w-full my-3"
+        disabled={submitting || !tokenValid}
+      >
+        {submitting ? "Resetting password..." : "Reset Password"}
       </Button>
     </form>
   );

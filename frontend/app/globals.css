@@ -164,7 +164,3 @@ body {
 @utility auth-form-hero-background {
   @apply bg-[#0f172b];
 }
-
-@utility secondary-button {
-  @apply;
-}

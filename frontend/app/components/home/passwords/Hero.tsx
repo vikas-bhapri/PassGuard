@@ -10,19 +10,17 @@ const Hero = ({ className }: { className?: string }) => {
   const router = useRouter();
 
   useEffect(() => {
-    if (!user || !user.token) {
+    if (!user || !user.user) {
       router.replace("/sign-in");
     }
   }, [user, router]);
 
-  if (!user || !user.token || !user.user) {
+  if (!user || !user.user) {
     return null; // Don't render anything while redirecting
   }
 
-  console.log(className);
-
   return (
-    <div className={`text-center ${className}`}>
+    <div className={`text-center w-9/10 mx-auto ${className}`}>
       <h1 className="text-4xl font-semibold">Hello {user.user.username}!</h1>
       <p className="text-2xl mt-3">Welcome to your password manager.</p>
       <p className="text-xl mt-3">

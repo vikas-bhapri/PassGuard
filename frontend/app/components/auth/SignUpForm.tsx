@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/field";
 import { toast } from "sonner";
 
-import { randomBytes, bufferToBase64Url } from "@/utils/encoding";
-import { deriveAuthKey, deriveVaultKey } from "@/crypto/kdf";
+import { signUpUser } from "@/store/slices/userSlice";
+import { AppDispatch } from "@/store/store";
+import { useDispatch } from "react-redux";
 
 const formSchema = z
   .object({
@@ -33,15 +34,11 @@ const formSchema = z
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
-  })
-  .strict();
+  });
 
 const SignUpForm = () => {
-  type errors = {
-    detail?: string;
-  };
+  const dispatch = useDispatch<AppDispatch>();
   const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<errors>({});
   const router = useRouter();
 
   const formData = useForm<z.infer<typeof formSchema>>({
@@ -55,51 +52,46 @@ const SignUpForm = () => {
   });
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    console.log(data);
+    if (submitting) return; // Prevent double submission
+
+    setSubmitting(true);
+
     try {
-      setSubmitting(true);
-      // Generate salts for KDF
-      const authSalt = randomBytes(16);
-      const vaultSalt = randomBytes(16);
-
-      // Derive keys for client-side encryption
-      const authKey = await deriveAuthKey(data.password, authSalt, 125000);
-      const vaultKey = await deriveVaultKey(data.password, vaultSalt, 125000);
-
-      const response = await fetch("http://localhost:8000/api/v1/auth/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      await dispatch(
+        signUpUser({
           username: data.username,
           email: data.email,
-          auth_algo: "PDKDF2-SHA256",
-          auth_iterations: 125000,
-          auth_salt_b64u: bufferToBase64Url(authSalt),
-          auth_verifier_b64u: bufferToBase64Url(authKey),
-          vault_kdf: {
-            algo: "PBKDF2-SHA256",
-            iterations: 125000,
-            salt_b64u: bufferToBase64Url(vaultSalt),
-          },
+          password: data.password,
+          confirm_password: data.confirmPassword,
         }),
-      });
+      ).unwrap();
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        setErrors({ detail: result.detail || "Sign up failed" });
-        throw new Error(result.detail || "Sign up failed");
-      }
-
+      toast.success("Signed up successfully! Redirecting to sign in...");
       formData.reset();
-
-      toast.success("Signed up successfully! Redirecting...");
       router.push("/sign-in");
     } catch (error) {
-      console.log("Error during sign up:", error);
-      toast.error((error as Error).message || "Failed to sign up");
+      console.error("Sign up error:", error);
+
+      let errorMessage = "Failed to sign up. Please try again.";
+
+      if (typeof error === "object" && error !== null) {
+        if ("detail" in error) {
+          errorMessage = String((error as { detail?: string }).detail);
+        } else if ("message" in error) {
+          errorMessage = String((error as { message?: string }).message);
+        }
+      }
+
+      // Handle specific common errors
+      if (errorMessage.toLowerCase().includes("username")) {
+        errorMessage =
+          "Username already exists. Please choose a different username.";
+      } else if (errorMessage.toLowerCase().includes("email")) {
+        errorMessage =
+          "Email already registered. Please use a different email or sign in.";
+      }
+
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

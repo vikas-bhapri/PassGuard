@@ -33,7 +33,11 @@ const NavPassword = ({
           {items.map((item) => (
             <Link key={item.name} href={item.url}>
               <SidebarMenuItem key={item.name}>
-                <SidebarMenuButton tooltip={item.name} onClick={openSidebar}>
+                <SidebarMenuButton
+                  tooltip={item.name}
+                  onClick={openSidebar}
+                  className="text-lg mb-2"
+                >
                   {item.icon && <item.icon />}
                   {item.name}
                 </SidebarMenuButton>

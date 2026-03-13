@@ -29,7 +29,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store/store";
 import { logoutUser } from "@/store/slices/userSlice";
+import { clearVaultKey } from "@/store/slices/kdfSlice";
+import { clearPasswords } from "@/store/slices/passwordSlice";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export function NavUser({
   user,
@@ -40,14 +45,27 @@ export function NavUser({
     avatar: string;
   };
 }) {
-  const { isMobile } = useSidebar();
-  const { setTheme, theme } = useTheme();
-  const dispatch = useDispatch();
+  const { isMobile, toggleSidebar } = useSidebar();
+  const { setTheme } = useTheme();
+  const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
 
   const handleLogout = async () => {
-    // Call backend to clear httpOnly cookies
-    await dispatch(logoutUser());
-    // The page component will handle the redirect via useEffect
+    // Clear client-side state first
+    dispatch(clearVaultKey());
+    dispatch(clearPasswords());
+
+    // Navigate immediately to prevent any axios interceptor redirects
+    router.push("/sign-in");
+
+    // Call backend to clear httpOnly cookies (fire and forget, ignore errors)
+    try {
+      dispatch(logoutUser());
+    } catch {
+      // Silently ignore logout API errors since we've already cleared local state
+    }
+
+    toast.success("Logged out successfully");
   };
 
   return (
@@ -65,9 +83,11 @@ export function NavUser({
                   {user.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+              <div className="grid flex-1 text-left leading-tight">
+                <span className="truncate font-medium text-base">
+                  {user.name}
+                </span>
+                <span className="truncate text-sm">{user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -94,31 +114,53 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  router.push(`/account/${user.name}`);
+                  if (isMobile) {
+                    toggleSidebar();
+                  }
+                }}
+                className="text-base"
+              >
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuLabel className="text-xs text-muted-foreground">
+              <DropdownMenuLabel className="text-sm text-muted-foreground">
                 Theme
               </DropdownMenuLabel>
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => setTheme("light")}>
+                <DropdownMenuItem
+                  onClick={() => setTheme("light")}
+                  className="text-base"
+                >
                   <Sun />
                   Light
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")}>
+                <DropdownMenuItem
+                  onClick={() => setTheme("dark")}
+                  className="text-base"
+                >
                   <Moon />
                   Dark
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("system")}>
+                <DropdownMenuItem
+                  onClick={() => setTheme("system")}
+                  className="text-base"
+                >
                   <Monitor />
                   System
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                handleLogout();
+              }}
+              className="text-base"
+            >
               <LogOut />
               Log out
             </DropdownMenuItem>

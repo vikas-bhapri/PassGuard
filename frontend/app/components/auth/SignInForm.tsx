@@ -47,25 +47,26 @@ const SignInForm = () => {
     setIsLoading(true);
 
     try {
-      toast.promise(
-        (async () => {
-          const result = await dispatch(loginUser(data)).unwrap();
-          await dispatch(getUserProfile()).unwrap();
+      await dispatch(loginUser(data)).unwrap();
+      const userProfile = await dispatch(getUserProfile()).unwrap();
 
-          router.push("/passwords");
-          formData.reset(); // Reset form after successful login
+      toast.success("Login successful!");
 
-          return result;
-        })(),
-        {
-          loading: "Signing in...",
-          success: "Login successful!",
-          error: "Login failed. Please check your credentials and try again.",
-        },
-      );
+      // Use the fresh user profile data, not the stale Redux selector
+      if (userProfile.new_user) {
+        router.push("/welcome");
+      } else {
+        router.push("/passwords");
+      }
+
+      formData.reset(); // Reset form after successful login
     } catch (error) {
-      // Error is already handled by toast.promise
       console.error("Login error:", error);
+      const errorMessage =
+        typeof error === "object" && error !== null && "detail" in error
+          ? String((error as { detail?: string }).detail)
+          : "Login failed. Please check your credentials and try again.";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false); // Ensure loading state is reset
     }

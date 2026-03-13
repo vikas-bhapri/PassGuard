@@ -11,13 +11,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-import {
-  KeyIcon,
-  NotebookPenIcon,
-  Lightbulb,
-  EvChargerIcon,
-  BotIcon
-} from "lucide-react";
+import { KeyIcon, NotebookPenIcon, Lightbulb, BotIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 import { useSelector } from "react-redux";
 import { NavUser } from "./nav-user";
@@ -36,6 +31,7 @@ type User = {
 export function AppSidebar(props) {
   const user = useSelector((state: any) => state.user);
   const sidebar = useSidebar();
+  const path = usePathname();
 
   const userData: User = user.user;
 
@@ -48,7 +44,7 @@ export function AppSidebar(props) {
     navMain: [
       {
         name: "Passwords",
-        url: "/home",
+        url: "/passwords",
         icon: KeyIcon,
       },
       {
@@ -64,8 +60,12 @@ export function AppSidebar(props) {
     ],
   };
 
+  if (path === "/sign-in" || path === "/sign-up" || path === "/welcome") {
+    return null; // Don't render AppSidebar on sign-in, sign-up, and welcome pages
+  }
+
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar className="text-lg" collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -78,9 +78,9 @@ export function AppSidebar(props) {
                   className="size-5!"
                   onClick={() => sidebar.toggleSidebar()}
                 />
-                <Link href="#">
-                  <span className={`text-base text-center font-semibold`}>
-                    My Bitch
+                <Link href="/passwords">
+                  <span className={`text-xl text-center font-semibold`}>
+                    PassGuard
                   </span>
                 </Link>
               </div>

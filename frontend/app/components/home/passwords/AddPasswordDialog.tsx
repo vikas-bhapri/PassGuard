@@ -4,9 +4,7 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
-  DialogClose,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -21,11 +19,12 @@ import {
 import { toast } from "sonner";
 
 import { useForm, Controller } from "react-hook-form";
+import { AxiosError } from "axios";
 
-import { useSelector } from "react-redux";
-import { RootState } from "@/store/store";
-import { encryptString } from "@/crypto/aesgcm";
-import { getVaultKey } from "@/crypto/keyStore";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store/store";
+import { addPassword } from "@/store/slices/passwordSlice";
+import { useState } from "react";
 
 const formSchema = z.object({
   service: z.string().min(1, "Service name is required"),
@@ -34,8 +33,8 @@ const formSchema = z.object({
 });
 
 const AddPasswordDialog = () => {
-  const kdfParams = useSelector((state: RootState) => state.kdf);
-  const vaultKey = getVaultKey();
+  const dispatch = useDispatch<AppDispatch>();
+  const [submitting, setSubmitting] = useState(false);
 
   const formData = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -47,48 +46,26 @@ const AddPasswordDialog = () => {
   });
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    const passwordPlainText = data.password;
+    setSubmitting(true);
 
-    if (!vaultKey) {
-      throw new Error("Vault key is not available. Cannot encrypt password.");
+    try {
+      const result = await dispatch(addPassword(data)).unwrap();
+
+      toast.success("Password added successfully!");
+      formData.reset();
+    } catch (error) {
+      console.error("Failed to add password:", error);
+      let errorMessage = "Failed to add password";
+      if (error instanceof AxiosError) {
+        errorMessage = error.response?.data?.detail || error.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
+      throw error;
+    } finally {
+      setSubmitting(false);
     }
-
-    const { iv, cipher_b64u } = await encryptString(
-      passwordPlainText,
-      vaultKey,
-    );
-
-    const response = await fetch("http://localhost:8000/api/v1/passwords/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        payload: {
-          service: data.service,
-          username: data.username,
-          ciphertext_b64u: cipher_b64u,
-          iv_b64u: iv,
-        },
-        kdf: {
-          algo: kdfParams.payload?.algo,
-          iterations: kdfParams.payload?.iterations,
-          salt_b64u: kdfParams.payload?.salt_b64u,
-        },
-      }),
-      credentials: "include",
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error("Failed to add password:", result);
-      toast.error(result.detail || "Failed to add password");
-      throw new Error(result.detail || "Failed to add password");
-    }
-
-    toast.success("Password added successfully!");
-    formData.reset();
   };
 
   return (
@@ -150,8 +127,13 @@ const AddPasswordDialog = () => {
         </FieldGroup>
 
         <div className="flex justify-end items-center">
-          <Button type="submit" className="mt-4" variant="default">
-            Add Password
+          <Button
+            type="submit"
+            className="mt-4 min-w-40"
+            variant="default"
+            disabled={submitting}
+          >
+            {submitting ? "Adding..." : "Add Password"}
           </Button>
         </div>
       </form>

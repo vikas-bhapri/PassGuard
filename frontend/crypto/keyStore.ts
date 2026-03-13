@@ -5,7 +5,6 @@ let vaultKey: CryptoKey | null = null;
 
 export const setVaultKey = (key: CryptoKey | null): void => {
   vaultKey = key;
-  console.log("Vault key stored in memory:", key ? "✓" : "✗", key);
 };
 
 export const getVaultKey = (): CryptoKey | null => {
@@ -14,7 +13,6 @@ export const getVaultKey = (): CryptoKey | null => {
 
 export const clearVaultKey = (): void => {
   vaultKey = null;
-  console.log("Vault key cleared from memory");
 };
 
 export const hasVaultKey = (): boolean => {
