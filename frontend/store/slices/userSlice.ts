@@ -73,7 +73,7 @@ export const logoutUser = createAsyncThunk(
 
 export const updateUserProfile = createAsyncThunk(
     "user/updateProfile",
-    async (data: { first_name?: string; last_name?: string; image?: typeof File }, {rejectWithValue}) => {
+    async (data: { first_name?: string; last_name?: string; image_url?: string }, {rejectWithValue}) => {
         try {            
             const response = await updateUserAPI(data);
             return response;

@@ -10,6 +10,7 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta
 from core.config import CONFIG
+from controllers.storage import delete_blob
 
 FRONTEND_URL = CONFIG.FRONTEND_URL
 
@@ -99,7 +100,7 @@ def update_password(user_id: UUID, password_update: schema.UpdateUserPasswordReq
     return existing_user
 
 
-def delete_user(request_body: schema.DeleteUserRequest, user_id: UUID, db: Session):
+async def delete_user(request_body: schema.DeleteUserRequest, user_id: UUID, db: Session):
     existing_user = db.query(User).filter(User.id == user_id).first()
 
     if not existing_user:
@@ -113,6 +114,8 @@ def delete_user(request_body: schema.DeleteUserRequest, user_id: UUID, db: Sessi
     if not checkpw(request_body.password.encode('utf-8'), existing_user.hashed_password.encode('utf-8')):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Password is incorrect")
+
+    await delete_blob(existing_user.image_url) if existing_user.image_url else None
 
     db.delete(existing_user)
     db.commit()

@@ -58,6 +58,10 @@ class Config:
         "ALLOWED_HEADERS", "Authorization,Content-Type").split(",")
     ALLOWED_METHODS: list = _get_env_var(
         "ALLOWED_METHODS", "GET,POST,PUT,DELETE,PATCH,OPTIONS").split(",")
+    
+    STORAGE_ACCOUNT_KEY: str = _get_env_var("STORAGE_ACCOUNT_KEY", required=True)
+    STORAGE_ACCOUNT_NAME: str = _get_env_var("STORAGE_ACCOUNT_NAME", required=True)
+    CONTAINER_NAME: str = _get_env_var("CONTAINER_NAME", required=True)
 
 
 CONFIG = Config()

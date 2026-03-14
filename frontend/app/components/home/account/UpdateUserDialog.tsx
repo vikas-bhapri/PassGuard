@@ -12,7 +12,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -31,7 +30,6 @@ import { AppDispatch } from "@/store/store";
 const formSchema = z.object({
   first_name: z.string().optional(),
   last_name: z.string().optional(),
-  image: z.instanceof(File).optional(),
 });
 
 type UpdateUserDialogProps = {
@@ -46,14 +44,13 @@ const UpdateUserDialog = ({ onSuccess }: UpdateUserDialogProps) => {
     defaultValues: {
       first_name: "",
       last_name: "",
-      image: undefined,
     },
   });
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     if (submitting) return; // Prevent double submission
 
-    if (data.first_name === "" && data.last_name === "" && !data.image) {
+    if (data.first_name === "" && data.last_name === "") {
       toast.error("Please provide at least one field to update");
       return;
     }
@@ -115,28 +112,6 @@ const UpdateUserDialog = ({ onSuccess }: UpdateUserDialogProps) => {
                     placeholder="Enter your last name"
                     aria-invalid={fieldState?.invalid}
                     {...field}
-                  />
-                  <FieldError>{fieldState?.error?.message}</FieldError>
-                </Field>
-              )}
-            />
-            <Controller
-              name="image"
-              control={formData.control}
-              render={({ field, fieldState }) => (
-                <Field>
-                  <FieldLabel htmlFor="image">Profile Image</FieldLabel>
-                  <Input
-                    name="image"
-                    id="image"
-                    type="file"
-                    accept="image/*"
-                    aria-invalid={fieldState?.invalid}
-                    multiple={false}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      field.onChange(file);
-                    }}
                   />
                   <FieldError>{fieldState?.error?.message}</FieldError>
                 </Field>

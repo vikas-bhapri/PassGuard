@@ -110,8 +110,8 @@ def update_password(password_update: UpdateUserPasswordRequest, db: Session = De
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(request_body: DeleteUserRequest, db: Session = Depends(get_db), user_id: dict = Depends(login.validate_user)):
-    auth.delete_user(request_body, user_id["uid"], db)
+async def delete_user(request_body: DeleteUserRequest, db: Session = Depends(get_db), user_id: dict = Depends(login.validate_user)):
+    await auth.delete_user(request_body, user_id["uid"], db)
     return None
 
 

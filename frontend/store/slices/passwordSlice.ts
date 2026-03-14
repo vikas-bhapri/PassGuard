@@ -138,10 +138,16 @@ export const deletePassword = createAsyncThunk(
 
 export const updatePassword = createAsyncThunk(
     "passwords/update",
-    async ({ passwordId, data }: { passwordId: string; data: PasswordPayload }, {rejectWithValue}) => {
+    async ({ passwordId, data, plaintext }: { passwordId: string; data: PasswordPayload; plaintext: { service: string; username: string; password: string } }, {rejectWithValue}) => {
         try {
             const response = await updatePasswordAPI(passwordId, data);
-            return response;
+            return {
+                id: response.id,
+                service: plaintext.service,
+                username: plaintext.username,
+                password: plaintext.password,
+                created_at: response.created_at,
+            };
         } catch (error: unknown) {
             const axiosError = error as { response?: { data?: unknown } };
             return rejectWithValue(axiosError.response?.data || "Failed to update password");

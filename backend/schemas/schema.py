@@ -1,5 +1,6 @@
+from datetime import datetime
 from pydantic import BaseModel, Field, field_serializer
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 
@@ -157,7 +158,6 @@ class CreatePasswordRequest(BaseModel):
 class UpdatePasswordRequest(BaseModel):
     service_name: Optional[str] = Field(None, min_length=1)
     username: Optional[str] = Field(None, min_length=3)
-    
 
 
 class GetPasswordResponse(BaseModel):
@@ -191,3 +191,15 @@ class ServiceResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ProfileUploadSASRequest(BaseModel):
+    content_type: Literal["image/jpeg", "image/png"]
+    content_length: int = Field(
+        lt=10 * 1024 * 1024, description="File size must be less than 10MB")
+
+
+class ProfileUploadSASResponse(BaseModel):
+    sas_url: str
+    blob_url: str
+    expires_at: datetime

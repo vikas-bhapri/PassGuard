@@ -18,6 +18,7 @@ import { useSelector } from "react-redux";
 import { NavUser } from "./nav-user";
 import Link from "next/link";
 import NavPassword from "./nav-password";
+import { RootState } from "@/store/store";
 
 type User = {
   username: string;
@@ -29,7 +30,7 @@ type User = {
 };
 
 export function AppSidebar(props) {
-  const user = useSelector((state: any) => state.user);
+  const user = useSelector((state: RootState) => state.user);
   const sidebar = useSidebar();
   const path = usePathname();
 

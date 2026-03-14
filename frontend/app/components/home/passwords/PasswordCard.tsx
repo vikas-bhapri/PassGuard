@@ -6,6 +6,9 @@ import { deletePassword } from "@/store/slices/passwordSlice";
 import { AppDispatch } from "@/store/store";
 import { useDispatch } from "react-redux";
 
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { EditPasswordDialog } from "./EditPasswordDialog";
+
 const PasswordCard = ({
   username,
   service,
@@ -18,6 +21,7 @@ const PasswordCard = ({
   id: string;
 }) => {
   const [isRevealed, setIsRevealed] = useState(false);
+  const [editPasswordOpen, setEditPasswordOpen] = useState(false);
 
   const toggleReveal = () => {
     setIsRevealed((prev) => !prev);
@@ -79,9 +83,20 @@ const PasswordCard = ({
           >
             <Trash2 className="shrink-0" />
           </Button>
-          <Button variant="outline" className="min-w-fit">
-            <PencilIcon className="shrink-0" />
-          </Button>
+          <Dialog open={editPasswordOpen} onOpenChange={setEditPasswordOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="min-w-fit">
+                <PencilIcon className="shrink-0" />
+              </Button>
+            </DialogTrigger>
+            <EditPasswordDialog
+              password={password}
+              service={service}
+              username={username}
+              pwdId={id}
+              onSuccess={() => setEditPasswordOpen(false)}
+            />
+          </Dialog>
         </div>
       </div>
     </div>

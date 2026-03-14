@@ -26,9 +26,9 @@ export const loginUserAPI = async (username: string, password: string) => {
 };
 
 export const updateUserAPI = async (data: {
-    first_name: string | undefined;
-    last_name: string | undefined;
-    image: typeof File | undefined;
+    first_name: string | null;
+    last_name: string | null;
+    image_url: string | null;
 }) => {
     const response = await instance.patch("auth/", data, {
         headers: {

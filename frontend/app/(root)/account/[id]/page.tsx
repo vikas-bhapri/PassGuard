@@ -10,13 +10,14 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import UpdateUserPasswordDialog from "@/app/components/home/account/UpdateUserPasswordDialog";
 import ResetMasterPassword from "@/app/components/home/account/ResetMasterPassword";
 import DeleteUserDialog from "@/app/components/home/account/DeleteUserDialog";
+import { RootState } from "@/store/store";
 
 export default function UserAccountPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
 
-  const user = useSelector((state: any) => state.user.user);
+  const user = useSelector((state: RootState) => state?.user.user);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [resetMasterPasswordOpen, setResetMasterPasswordOpen] = useState(false);
 

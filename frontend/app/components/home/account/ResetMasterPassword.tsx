@@ -68,7 +68,6 @@ const ResetMasterPassword = ({ onSuccess }: ResetMasterPasswordProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const username = useSelector((state: RootState) => state.user.user?.username);
   const kdfPayload = useSelector((state: RootState) => state.kdf.payload);
-  const vaultKey = useSelector((state: RootState) => state.kdf.hasVaultKey);
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
@@ -124,6 +123,11 @@ const ResetMasterPassword = ({ onSuccess }: ResetMasterPasswordProps) => {
                 username: encryptedPasswordPayload.username,
                 ciphertext_b64u: encryptedPasswordPayload.password.cipher_b64u,
                 iv_b64u: encryptedPasswordPayload.password.iv,
+              },
+              plaintext: {
+                service: encryptedPasswordPayload.service,
+                username: encryptedPasswordPayload.username,
+                password: pwd.password,
               },
             }),
           );
