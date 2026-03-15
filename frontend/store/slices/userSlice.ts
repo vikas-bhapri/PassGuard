@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { getUserProfileAPI, loginUserAPI, signUpUserAPI, logoutAPI, updateUserAPI, deleteUserAPI } from "../api/authAPI";
+import { getReadToken } from "../api/storageAPI";
 
 interface User {
     id: string;
@@ -97,6 +98,19 @@ export const deleteUserAccount = createAsyncThunk(
     }
 )
 
+export const getProfilePicture = createAsyncThunk(
+    "user/getProfilePic",
+    async (_, {rejectWithValue}) => {
+        try {
+            const response = await getReadToken();
+            return response.sas_url;
+        } catch (error: unknown) {
+            const axiosError = error as { response?: { data?: unknown } };
+            return rejectWithValue(axiosError.response?.data || "Failed to fetch profile picture");
+        }
+    }
+)
+
 
 const userSlice = createSlice({
     name: "user",
@@ -169,6 +183,18 @@ const userSlice = createSlice({
         .addCase(deleteUserAccount.rejected, (state, action) => {
             state.loading = false;
             state.error = (action.payload as { detail?: string })?.detail || "Failed to delete user account";
+        })
+        .addCase(getProfilePicture.pending, (state) => {
+            state.loading = true;
+        })
+        .addCase(getProfilePicture.fulfilled, (state, action) => {
+            state.loading = false;
+            state.user = state.user ? { ...state.user, image_url: action.payload } : null;
+            state.error = null;
+        })
+        .addCase(getProfilePicture.rejected, (state, action) => {
+            state.loading = false;
+            state.error = (action.payload as { detail?: string })?.detail || "Failed to fetch profile picture";
         })
     }
 })

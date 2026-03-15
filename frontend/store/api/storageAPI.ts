@@ -10,6 +10,15 @@ export const getSasTokenAPI = async (payload: {content_type: string, content_len
     return response.data;
 }
 
+export const getReadToken = async () => {
+    const response = await instance.post("storage/profile-read", {
+        headers: {
+            "Content-Type": "application/json",
+        },
+    });
+    return response.data;
+}
+
 export const uploadFileAPI = async (sasUrl: string, file: File) => {
     const response = await axios.put(sasUrl, 
         file,

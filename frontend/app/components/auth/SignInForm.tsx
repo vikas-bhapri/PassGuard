@@ -8,7 +8,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useDispatch } from "react-redux";
-import { loginUser, getUserProfile } from "@/store/slices/userSlice";
+import {
+  loginUser,
+  getUserProfile,
+  getProfilePicture,
+} from "@/store/slices/userSlice";
 import { AppDispatch } from "@/store/store";
 
 import { Button } from "@/components/ui/button";
@@ -49,6 +53,10 @@ const SignInForm = () => {
     try {
       await dispatch(loginUser(data)).unwrap();
       const userProfile = await dispatch(getUserProfile()).unwrap();
+
+      if (userProfile.image_url) {
+        await dispatch(getProfilePicture()).unwrap();
+      }
 
       toast.success("Login successful!");
 

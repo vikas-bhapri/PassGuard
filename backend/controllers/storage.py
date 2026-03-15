@@ -3,8 +3,10 @@ from datetime import datetime, timedelta
 
 from azure.storage.blob import BlobSasPermissions, BlobServiceClient, generate_blob_sas
 from azure.storage.blob._models import CorsRule
+from sqlalchemy.orm import Session
 from core.config import CONFIG
 from schemas.schema import ProfileUploadSASRequest
+from models.model import User
 
 STORAGE_ACCOUNT_NAME = CONFIG.STORAGE_ACCOUNT_NAME
 STORAGE_ACCOUNT_KEY = CONFIG.STORAGE_ACCOUNT_KEY
@@ -24,7 +26,8 @@ def configure_storage_cors():
         f"AccountKey={STORAGE_ACCOUNT_KEY};"
         f"EndpointSuffix=core.windows.net"
     )
-    service_client = BlobServiceClient.from_connection_string(connection_string)
+    service_client = BlobServiceClient.from_connection_string(
+        connection_string)
     cors_rule = CorsRule(
         allowed_origins=[CONFIG.FRONTEND_URL],
         allowed_methods=["PUT"],
@@ -72,6 +75,31 @@ async def _generate_blob_sas(payload: ProfileUploadSASRequest, user_name: str):
         "expires_at": expiry_time
     }
 
+
+def _generate_read_sas(user_id: str, db: Session):
+    user = db.query(User).filter(User.username == user_id).first()
+    if not user or not user.image_url:
+        raise ValueError("User or profile image not found")
+
+    blob_name = _extract_blob_name(user.image_url)
+
+    expiry = datetime.utcnow() + timedelta(minutes=5)
+
+    sas = generate_blob_sas(
+        account_name=STORAGE_ACCOUNT_NAME,
+        container_name=STORAGE_CONTAINER_NAME,
+        blob_name=blob_name,
+        account_key=STORAGE_ACCOUNT_KEY,
+        permission=BlobSasPermissions(read=True),
+        expiry=expiry
+    )
+
+    return {
+        "sas_url": _build_blob_url(STORAGE_ACCOUNT_NAME, STORAGE_CONTAINER_NAME, blob_name) + "?" + sas,
+        "expires_at": expiry
+    }
+
+
 def _extract_blob_name(blob_url: str) -> str:
     """Extract the blob name from a full Azure Blob Storage URL or return as-is if already a name."""
     prefix = f"https://{STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{STORAGE_CONTAINER_NAME}/"
@@ -89,8 +117,10 @@ async def delete_blob(blob_name: str):
             f"AccountKey={STORAGE_ACCOUNT_KEY};"
             f"EndpointSuffix=core.windows.net"
         )
-        service_client = BlobServiceClient.from_connection_string(connection_string)
-        blob_client = service_client.get_blob_client(container=STORAGE_CONTAINER_NAME, blob=blob_name)
+        service_client = BlobServiceClient.from_connection_string(
+            connection_string)
+        blob_client = service_client.get_blob_client(
+            container=STORAGE_CONTAINER_NAME, blob=blob_name)
         blob_client.delete_blob()
     except Exception as e:
         print(f"Failed to delete blob: {e}")
