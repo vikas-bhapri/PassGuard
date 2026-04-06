@@ -8,17 +8,20 @@ import { useDispatch } from "react-redux";
 
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { EditPasswordDialog } from "./EditPasswordDialog";
+import Image from "next/image";
 
 const PasswordCard = ({
   username,
   service,
   password,
   id,
+  image,
 }: {
   username: string;
   service: string;
   password: string;
   id: string;
+  image?: string;
 }) => {
   const [isRevealed, setIsRevealed] = useState(false);
   const [editPasswordOpen, setEditPasswordOpen] = useState(false);
@@ -56,7 +59,18 @@ const PasswordCard = ({
   return (
     <div className="border rounded-xl p-4 mb-2">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <h2 className="text-2xl font-semibold truncate">{service}</h2>
+        <div className="flex justify-start items-center gap-5">
+          {image && (
+            <Image
+              src={image}
+              alt={service}
+              width={30}
+              height={30}
+              className="rounded-full"
+            />
+          )}
+          <h2 className="text-2xl font-semibold truncate">{service}</h2>
+        </div>
         <p className="text-lg truncate">{username}</p>
         <p
           className="text-lg lg:col-span-2 cursor-pointer break-all"
@@ -83,7 +97,11 @@ const PasswordCard = ({
           >
             <Trash2 className="shrink-0" />
           </Button>
-          <Dialog open={editPasswordOpen} onOpenChange={setEditPasswordOpen}>
+          <Dialog
+            open={editPasswordOpen}
+            onOpenChange={setEditPasswordOpen}
+            modal={false}
+          >
             <DialogTrigger asChild>
               <Button variant="outline" className="min-w-fit">
                 <PencilIcon className="shrink-0" />

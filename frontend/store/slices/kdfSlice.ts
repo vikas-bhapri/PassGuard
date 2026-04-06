@@ -1,14 +1,15 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { getKdfAPI } from "../api/authAPI";
-import { deriveVaultKey } from "@/crypto/kdf";
 import { base64UrlToBuffer } from "@/utils/encoding";
 import { setVaultKey as storeVaultKey, clearVaultKey as clearStoredVaultKey } from "@/crypto/keyStore";
 import type { RootState } from "../store";
 import { AxiosError } from "axios";
+import { argon2idRawKey, importAesGcmKey } from "@/crypto/argon2id";
 
 interface KdfParams {
     algo?: string;
-    iterations?: number;
+    ops_limit?: number;
+    mem_limit_kib?: number;
     salt_b64u?: string;
 }
 
@@ -45,7 +46,7 @@ export const deriveAndSetVaultKey = createAsyncThunk(
             const state = getState() as RootState;
             const { payload } = state.kdf;
             
-            if (!payload?.salt_b64u || !payload?.iterations) {
+            if (!payload?.salt_b64u || !payload?.ops_limit || !payload?.mem_limit_kib) {
                 return rejectWithValue("KDF parameters not available. Please fetch them first.");
             }
             
@@ -62,11 +63,16 @@ export const deriveAndSetVaultKey = createAsyncThunk(
             
             // Password is verified, now derive the vault key
             const vaultSalt = base64UrlToBuffer(payload.salt_b64u);
-            
-            const key = await deriveVaultKey(masterPassword, vaultSalt, payload.iterations);
+            const vaultRaw = await argon2idRawKey(
+                    masterPassword,
+                    vaultSalt,
+                    payload.ops_limit,
+                    payload.mem_limit_kib,
+                  );
+            const vaultKey = await importAesGcmKey(vaultRaw);
             
             // Store key in memory, not in Redux
-            storeVaultKey(key);
+            storeVaultKey(vaultKey);
             
             return true;
         } catch (error: unknown) {

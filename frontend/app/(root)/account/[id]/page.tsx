@@ -6,11 +6,19 @@ import { useRouter, useParams, notFound } from "next/navigation";
 import UpdateUserDialog from "@/app/components/home/account/UpdateUserDialog";
 import UserDetails from "@/app/components/home/account/UserDetails";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import UpdateUserPasswordDialog from "@/app/components/home/account/UpdateUserPasswordDialog";
 import ResetMasterPassword from "@/app/components/home/account/ResetMasterPassword";
 import DeleteUserDialog from "@/app/components/home/account/DeleteUserDialog";
 import { RootState } from "@/store/store";
+import CreateAdminDialog from "@/app/components/home/account/CreateAdminDialog";
 
 export default function UserAccountPage() {
   const router = useRouter();
@@ -55,6 +63,22 @@ export default function UserAccountPage() {
           </DialogTrigger>
           <UpdateUserDialog onSuccess={() => setUpdateDialogOpen(false)} />
         </Dialog>
+        {user.role === "admin" && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="w-full">Create Admin Account</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Admin Account</DialogTitle>
+                <DialogDescription>
+                  Fill out the form below to create a new admin account.
+                </DialogDescription>
+              </DialogHeader>
+              <CreateAdminDialog />
+            </DialogContent>
+          </Dialog>
+        )}
         <Dialog>
           <DialogTrigger asChild>
             <Button className="w-full">Change Account Password</Button>

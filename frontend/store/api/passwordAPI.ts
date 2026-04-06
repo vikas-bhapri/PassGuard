@@ -9,7 +9,8 @@ export interface PasswordPayload {
 
 interface KdfParams {
     algo?: string;
-    iterations?: number;
+    ops_limit?: number;
+    mem_limit_kib?: number;
     salt_b64u?: string;
 }
 

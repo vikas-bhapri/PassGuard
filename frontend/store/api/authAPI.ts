@@ -1,6 +1,8 @@
 import { hmac256Base64Url } from "@/crypto/hmac";
 import { deriveAuthKey } from "@/crypto/kdf";
+import { argon2idRawKey } from "@/crypto/argon2id";
 import instance from "@/utils/axios";
+import sodium from "libsodium-wrappers-sumo";
 import {
   base64UrlToBuffer,
   bufferToBase64Url,
@@ -69,6 +71,7 @@ export const signUpUserAPI = async (data: {
   password: string;
   email: string;
   confirm_password: string;
+  role: "admin" | "user" | undefined;
 }) => {
   const response = await instance.post("auth/", data, {
     headers: {
@@ -118,11 +121,26 @@ export const verifyVaultPasswordAPI = async (
   const { challenge_b64u, auth_kdf } = challengeResult;
 
   const authSalt = base64UrlToBuffer(auth_kdf.salt_b64u);
-  const authKeyRaw = await deriveAuthKey(
-    password,
-    authSalt,
-    auth_kdf.iterations,
-  );
+  
+  // Use argon2id for key derivation
+  let authKeyRaw: Uint8Array | ArrayBuffer;
+  
+  if (auth_kdf.algo === "Argon2id-13" || auth_kdf.ops_limit !== undefined) {
+    // New argon2id format
+    authKeyRaw = await argon2idRawKey(
+      password,
+      authSalt,
+      auth_kdf.ops_limit,
+      auth_kdf.mem_limit_kib,
+    );
+  } else {
+    // Fallback to PBKDF2 for legacy accounts (if any)
+    authKeyRaw = await deriveAuthKey(
+      password,
+      authSalt,
+      auth_kdf.iterations,
+    );
+  }
 
   const proof = await hmac256Base64Url(
     authKeyRaw,
@@ -177,13 +195,15 @@ export const resetPasswordAPI = async (data: {
 
 export const createMasterPasswordAPI = async (data: MasterPasswordData) => {
   const response = await instance.post("auth/master_password", {
-    auth_algo: "PBKDF2-SHA256",
-    auth_iterations: 125000,
+    auth_algo: "Argon2id-13",
+    auth_ops_limit: sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
+    auth_mem_limit_kib: sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
     auth_salt_b64u: bufferToBase64Url(data.authSalt),
     auth_verifier_b64u: bufferToBase64Url(data.authKey),
     vault_kdf: {
-      algo: "PBKDF2-SHA256",
-      iterations: 125000,
+      algo: "Argon2id-13",
+      ops_limit: sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
+      mem_limit_kib: sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
       salt_b64u: bufferToBase64Url(data.vaultSalt),
     },
   });

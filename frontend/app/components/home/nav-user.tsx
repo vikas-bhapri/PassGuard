@@ -7,6 +7,7 @@ import {
   Moon,
   Sun,
   Monitor,
+  AppWindowMac,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -43,6 +44,7 @@ export function NavUser({
     name: string;
     email: string;
     avatar: string;
+    role: string;
   };
 }) {
   const { isMobile, toggleSidebar } = useSidebar();
@@ -126,6 +128,16 @@ export function NavUser({
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
+              {user.role === "admin" && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    router.push("/services");
+                  }}
+                  className="text-base"
+                >
+                  <AppWindowMac /> Services
+                </DropdownMenuItem>
+              )}
               <DropdownMenuLabel className="text-sm text-muted-foreground">
                 Theme
               </DropdownMenuLabel>

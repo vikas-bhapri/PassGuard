@@ -170,12 +170,14 @@ def login_challenge(username: str, db: Session):
         "challenge_b64u": challenge_b64u,
         "auth_kdf": {
             "algo": user.auth_algo,
-            "iterations": user.auth_iterations,
+            "ops_limit": user.auth_ops_limit,
+            "mem_limit_kib": user.auth_mem_limit_kib,
             "salt_b64u": user.auth_salt_b64u,
         },
         "vault_kdf": {
             "algo": user.vault_algo,
-            "iterations": user.vault_iterations,
+            "ops_limit": user.vault_ops_limit,
+            "mem_limit_kib": user.vault_mem_limit_kib,
             "salt_b64u": user.vault_salt_b64u,
         }
     }

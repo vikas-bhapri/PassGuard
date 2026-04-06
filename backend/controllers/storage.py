@@ -11,6 +11,7 @@ from models.model import User
 STORAGE_ACCOUNT_NAME = CONFIG.STORAGE_ACCOUNT_NAME
 STORAGE_ACCOUNT_KEY = CONFIG.STORAGE_ACCOUNT_KEY
 STORAGE_CONTAINER_NAME = CONFIG.CONTAINER_NAME
+SERVICES_CONTAINER_NAME = CONFIG.SERVICE_CONTAINER_NAME
 
 ALLOWED_FILE_TYPES = {
     "image/jpeg": "jpg",
@@ -49,6 +50,22 @@ async def _generate_blob_sas(payload: ProfileUploadSASRequest, user_name: str):
     ext = ALLOWED_FILE_TYPES[payload.content_type]
     blob_name = f"users/{user_name}/profle_{uuid.uuid4().hex}.{ext}"
 
+    if not STORAGE_ACCOUNT_KEY:
+        raise ValueError("Storage account key is not configured")
+
+    return generate_write_sas(blob_name, payload.content_type, STORAGE_CONTAINER_NAME)
+
+
+def generate_service_image_upload(payload):
+    ext = ALLOWED_FILE_TYPES.get(payload.content_type)
+    if not ext:
+        raise ValueError("Unsupported file type")
+
+    blob_name = f"services/{payload.service_name}_{uuid.uuid4().hex}.{ext}"
+    return generate_write_sas(blob_name, payload.content_type, SERVICES_CONTAINER_NAME)
+
+
+def generate_write_sas(blob_name, content_type, container_name):
     start_time = datetime.utcnow() - timedelta(minutes=1)
     expiry_time = datetime.utcnow() + timedelta(minutes=5)
 
@@ -57,17 +74,17 @@ async def _generate_blob_sas(payload: ProfileUploadSASRequest, user_name: str):
 
     sas = generate_blob_sas(
         account_name=STORAGE_ACCOUNT_NAME,
-        container_name=STORAGE_CONTAINER_NAME,
+        container_name=container_name,
         blob_name=blob_name,
         account_key=STORAGE_ACCOUNT_KEY,
         permission=BlobSasPermissions(write=True, create=True),
         start=start_time,
         expiry=expiry_time,
-        content_type=payload.content_type
+        content_type=content_type
     )
 
     sas_url = _build_blob_url(STORAGE_ACCOUNT_NAME,
-                              STORAGE_CONTAINER_NAME, blob_name) + "?" + sas
+                              container_name, blob_name) + "?" + sas
 
     return {
         "sas_url": sas_url,
@@ -108,7 +125,7 @@ def _extract_blob_name(blob_url: str) -> str:
     return blob_url.split("?")[0]
 
 
-async def delete_blob(blob_name: str):
+async def delete_blob(blob_name: str, container_name: str = STORAGE_CONTAINER_NAME):
     try:
         blob_name = _extract_blob_name(blob_name)
         connection_string = (
@@ -120,7 +137,7 @@ async def delete_blob(blob_name: str):
         service_client = BlobServiceClient.from_connection_string(
             connection_string)
         blob_client = service_client.get_blob_client(
-            container=STORAGE_CONTAINER_NAME, blob=blob_name)
+            container=container_name, blob=blob_name)
         blob_client.delete_blob()
     except Exception as e:
         print(f"Failed to delete blob: {e}")

@@ -25,12 +25,19 @@ import {
 } from "@/crypto/keyStore";
 import { toast } from "sonner";
 import PasswordCard from "./PasswordCard";
+import GeneratePasswordDialog from "./GeneratePasswordDialog";
+import { fetchServiceImagesAPI } from "@/store/api/servicesAPI";
+import { fetchServices } from "@/store/slices/servicesSlice";
 
 const ListPasswords = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [isLoading, setIsLoading] = useState(false);
   const [isLocked, setIsLocked] = useState(true);
   const [masterPassword, setMasterPassword] = useState("");
+  const [serviceImages, setServiceImages] = useState<Record<string, string>>(
+    {},
+  );
+
   const passwords = useSelector(
     (state: RootState) => state.passwords.passwords,
   );
@@ -69,6 +76,9 @@ const ListPasswords = () => {
 
       toast.success("Vault unlocked successfully!");
 
+      const images = await fetchServiceImagesAPI();
+      setServiceImages(images);
+      await dispatch(fetchServices()).unwrap();
       setMasterPassword("");
       setIsLocked(false);
     } catch (error) {
@@ -120,11 +130,21 @@ const ListPasswords = () => {
               </Button>
             </div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg">Add new password here</h1>
+              <h1>Generate new password</h1>
               <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="secondary">Generate</Button>
+                </DialogTrigger>
+                <GeneratePasswordDialog />
+              </Dialog>
+            </div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg">Add new password here</h1>
+              <Dialog modal={false}>
                 <DialogTrigger asChild>
                   <Button variant="secondary">Add New Password</Button>
                 </DialogTrigger>
+
                 <AddPasswordDialog />
               </Dialog>
             </div>
@@ -142,6 +162,7 @@ const ListPasswords = () => {
                 username={pwd.username}
                 key={pwd.id}
                 id={pwd.id}
+                image={serviceImages[pwd.service]}
               />
             ))
           )}

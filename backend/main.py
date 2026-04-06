@@ -5,6 +5,7 @@ from core.database import engine, Base
 from routes import auth, password, services, sas
 from core.config import CONFIG
 from controllers.storage import configure_storage_cors
+from core.config import CONFIG
 
 
 @asynccontextmanager
@@ -19,6 +20,8 @@ app = FastAPI(
     version="0.1.0",
     root_path="/api/v1",
     lifespan=lifespan,
+    # Disable docs in production
+    docs_url="/docs" if CONFIG.APP_ENV.lower() != "production" else None,
 )
 
 app.include_router(auth.router)

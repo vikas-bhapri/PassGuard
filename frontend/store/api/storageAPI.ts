@@ -1,7 +1,7 @@
 import axios from "axios";
 import instance from "@/utils/axios";
 
-export const getSasTokenAPI = async (payload: {content_type: string, content_length: number}) => {
+export const getProfileSasTokenAPI = async (payload: {content_type: string, content_length: number}) => {
     const response = await instance.post("storage/profile-upload", payload, {
         headers: {
             "Content-Type": "application/json",
@@ -29,5 +29,14 @@ export const uploadFileAPI = async (sasUrl: string, file: File) => {
             }
         }
     )
+    return response.data;
+}
+
+export const getServiceImageUploadSasAPI = async (payload: { content_type: string, content_length: number, service_name: string }) => {
+    const response = await instance.post("storage/service-upload", payload, {
+        headers: {
+            "Content-Type": "application/json",
+        },
+    });
     return response.data;
 }

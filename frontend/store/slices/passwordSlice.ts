@@ -103,7 +103,8 @@ export const addPassword = createAsyncThunk(
       },
       kdf: {
         algo: kdfParams.payload?.algo,
-        iterations: kdfParams.payload?.iterations,
+        ops_limit: kdfParams.payload?.ops_limit,
+        mem_limit_kib: kdfParams.payload?.mem_limit_kib,
         salt_b64u: kdfParams.payload?.salt_b64u,
       },
     };

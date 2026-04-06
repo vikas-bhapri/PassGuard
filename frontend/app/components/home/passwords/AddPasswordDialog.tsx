@@ -21,10 +21,18 @@ import { toast } from "sonner";
 import { useForm, Controller } from "react-hook-form";
 import { AxiosError } from "axios";
 
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "@/store/store";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
 import { addPassword } from "@/store/slices/passwordSlice";
 import { useState } from "react";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 
 const formSchema = z.object({
   service: z.string().min(1, "Service name is required"),
@@ -35,6 +43,10 @@ const formSchema = z.object({
 const AddPasswordDialog = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [submitting, setSubmitting] = useState(false);
+  const serviceState = useSelector(
+    (state: RootState) => state.services.services,
+  );
+  const services = serviceState.map((service) => service.name);
 
   const formData = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -81,12 +93,26 @@ const AddPasswordDialog = () => {
             render={({ field, fieldState }) => (
               <Field>
                 <FieldLabel htmlFor="service">Service Name</FieldLabel>
-                <Input
-                  id="service"
-                  aria-invalid={fieldState.invalid}
-                  placeholder="e.g. Gmail"
-                  {...field}
-                />
+                <Combobox
+                  items={services}
+                  value={field.value}
+                  onValueChange={(val) => field.onChange(val)}
+                  onInputValueChange={(inputValue) =>
+                    field.onChange(inputValue)
+                  }
+                >
+                  <ComboboxInput placeholder="Select a service" showClear />
+                  <ComboboxContent>
+                    <ComboboxEmpty>No items found.</ComboboxEmpty>
+                    <ComboboxList>
+                      {(item) => (
+                        <ComboboxItem key={item} value={item}>
+                          {item}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
                 <FieldError>{fieldState.error?.message}</FieldError>
               </Field>
             )}

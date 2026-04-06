@@ -62,6 +62,7 @@ class Config:
     STORAGE_ACCOUNT_KEY: str = _get_env_var("STORAGE_ACCOUNT_KEY", required=True)
     STORAGE_ACCOUNT_NAME: str = _get_env_var("STORAGE_ACCOUNT_NAME", required=True)
     CONTAINER_NAME: str = _get_env_var("CONTAINER_NAME", required=True)
+    SERVICE_CONTAINER_NAME: str = _get_env_var("SERVICE_CONTAINER_NAME", required=True)
 
 
 CONFIG = Config()

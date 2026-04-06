@@ -14,11 +14,13 @@ import {
 import { KeyIcon, NotebookPenIcon, Lightbulb, BotIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { NavUser } from "./nav-user";
 import Link from "next/link";
 import NavPassword from "./nav-password";
-import { RootState } from "@/store/store";
+import { AppDispatch, RootState } from "@/store/store";
+import { useEffect } from "react";
+import { getProfilePicture } from "@/store/slices/userSlice";
 
 type User = {
   username: string;
@@ -29,10 +31,23 @@ type User = {
   email: string;
 };
 
+const SAS_REFRESH_INTERVAL = 4 * 60 * 1000; // 4 minutes
+
 export function AppSidebar(props) {
   const user = useSelector((state: RootState) => state.user);
   const sidebar = useSidebar();
   const path = usePathname();
+  const dispatch = useDispatch<AppDispatch>();
+
+  useEffect(() => {
+    if (!user.user?.image_url) return;
+
+    const interval = setInterval(() => {
+      dispatch(getProfilePicture());
+    }, SAS_REFRESH_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [dispatch, user.user?.image_url]);
 
   const userData: User = user.user;
 
@@ -41,6 +56,7 @@ export function AppSidebar(props) {
       name: userData?.username || "User",
       avatar: userData?.image_url || "",
       email: userData?.email || "test@email.com",
+      role: userData?.role || "user",
     },
     navMain: [
       {

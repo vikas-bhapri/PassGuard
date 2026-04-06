@@ -41,7 +41,7 @@ def create_user(user: schema.UserCreate, db: Session):
 
     hashed_password = hash_password(user.password)
     new_user = User(username=user.username, email=user.email,
-                    hashed_password=hashed_password)
+                    hashed_password=hashed_password, role=user.role or "user")
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -241,12 +241,14 @@ def password_reset(reset_token: str, data: schema.UserPasswordResetRequest, db: 
 #         email=user.email,
 #         username=user.username,
 #         auth_algo=user.auth_algo,
-#         auth_iterations=user.auth_iterations,
+#         auth_ops_limit=user.auth_ops_limit,
+#         auth_mem_limit_kib=user.auth_mem_limit_kib,
 #         auth_salt_b64u=user.auth_salt_b64u,
 #         auth_verifier_b64u=user.auth_verifier_b64u,
 
 #         vault_algo=user.vault_kdf.algo,
-#         vault_iterations=user.vault_kdf.iterations,
+#         vault_ops_limit=user.vault_kdf.ops_limit,
+#         vault_mem_limit_kib=user.vault_kdf.mem_limit_kib,
 #         vault_salt_b64u=user.vault_kdf.salt_b64u
 #     )
 
@@ -267,7 +269,8 @@ def get_user_kdf_params(user_id: UUID, db: Session):
     return {
         "vault_kdf": {
             "algo": user.vault_algo,
-            "iterations": user.vault_iterations,
+            "ops_limit": user.vault_ops_limit,
+            "mem_limit_kib": user.vault_mem_limit_kib,
             "salt_b64u": user.vault_salt_b64u,
         }
     }
@@ -281,11 +284,13 @@ def create_master_password(user_id: str, request: schema.MasterPasswordRequest, 
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     setattr(user, "auth_algo", request.auth_algo)
-    setattr(user, "auth_iterations", request.auth_iterations)
+    setattr(user, "auth_ops_limit", request.auth_ops_limit)
+    setattr(user, "auth_mem_limit_kib", request.auth_mem_limit_kib)
     setattr(user, "auth_salt_b64u", request.auth_salt_b64u)
     setattr(user, "auth_verifier_b64u", request.auth_verifier_b64u)
     setattr(user, "vault_algo", request.vault_kdf.algo)
-    setattr(user, "vault_iterations", request.vault_kdf.iterations)
+    setattr(user, "vault_ops_limit", request.vault_kdf.ops_limit)
+    setattr(user, "vault_mem_limit_kib", request.vault_kdf.mem_limit_kib)
     setattr(user, "vault_salt_b64u", request.vault_kdf.salt_b64u)
     setattr(user, "master_password_set", True)
     setattr(user, "new_user", False)

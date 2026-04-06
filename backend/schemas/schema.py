@@ -6,13 +6,15 @@ from uuid import UUID
 
 class KDFParams(BaseModel):
     algo: str
-    iterations: int
+    ops_limit: int
+    mem_limit_kib: int
     salt_b64u: str
 
 
 class MasterPasswordRequest(BaseModel):
     auth_algo: str
-    auth_iterations: int
+    auth_ops_limit: int
+    auth_mem_limit_kib: int
     auth_salt_b64u: str
     auth_verifier_b64u: str
     vault_kdf: KDFParams
@@ -54,6 +56,8 @@ class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: str = Field(...)
     password: str = Field(..., min_length=8, max_length=72)
+    role: Optional[str] = Field(
+        "user", description="Role of the user, default is 'user'")
 
 
 class UserLogin(BaseModel):
@@ -197,6 +201,13 @@ class ProfileUploadSASRequest(BaseModel):
     content_type: Literal["image/jpeg", "image/png"]
     content_length: int = Field(
         lt=10 * 1024 * 1024, description="File size must be less than 10MB")
+
+
+class ServiceUploadSASRequest(BaseModel):
+    content_type: Literal["image/jpeg", "image/png"]
+    content_length: int = Field(
+        lt=10 * 1024 * 1024, description="File size must be less than 10MB")
+    service_name: str
 
 
 class ProfileUploadSASResponse(BaseModel):

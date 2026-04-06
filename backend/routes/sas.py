@@ -36,3 +36,16 @@ def generate_profile_read_sas(db: Session = Depends(get_db), current_user=Depend
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/service-upload", status_code=status.HTTP_200_OK)
+async def generate_service_upload_sas(request: schema.ServiceUploadSASRequest, db: Session = Depends(get_db), current_user=Depends(validate_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can upload service images")
+
+    try:
+        return storage.generate_service_image_upload(request)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

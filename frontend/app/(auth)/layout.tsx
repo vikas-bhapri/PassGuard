@@ -1,7 +1,6 @@
-import Image from "next/image";
 import React from "react";
-import NextImage from "@/public/next.svg";
 import type { Metadata } from "next";
+import HeroImg from "../components/auth/HeroImg";
 
 export const authMetadata: Metadata = {
   title: "Authentication",
@@ -12,7 +11,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex m-auto w-full">
       <div className="auth-form-hero-background text-white text-center hidden md:flex flex-col min-h-screen lg:min-w-[40%] md:min-w-[30%] items-center justify-center gap-5">
-        <Image src={NextImage} alt="An Image" className="w-sm" />
+        <HeroImg />
         <h1 className="text-4xl font-semibold">PassGuard</h1>
         <p className="text-xl w-9/10">
           Create and manage your passwords with ease. We follow zero-knowledge
@@ -22,7 +21,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
       </div>
       <div className="flex flex-col min-h-screen items-center justify-center bg-background w-full md:min-w-[60%]">
         <div className="md:hidden text-center flex flex-col items-center gap-6 justify-center mb-5 w-9/10">
-          <Image src={NextImage} alt="An Image" />
+          <HeroImg />
           <h1 className="text-4xl font-semibold">PassGuard</h1>
           <p className="text-xl">
             Create and manage your passwords with ease. We follow zero-knowledge

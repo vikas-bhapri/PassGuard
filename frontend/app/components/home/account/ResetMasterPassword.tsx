@@ -24,7 +24,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { setVaultKey } from "@/crypto/keyStore";
 import { randomBytes } from "@/utils/encoding";
-import { deriveAuthKey, deriveVaultKey } from "@/crypto/kdf";
 import { encryptString } from "@/crypto/aesgcm";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -32,6 +31,7 @@ import { fetchPasswords, updatePassword } from "@/store/slices/passwordSlice";
 import { AppDispatch, RootState } from "@/store/store";
 import { deriveAndSetVaultKey, getKdfParams } from "@/store/slices/kdfSlice";
 import { createMasterPasswordAPI } from "@/store/api/authAPI";
+import { argon2idRawKey, importAesGcmKey } from "@/crypto/argon2id";
 
 const formSchema = z
   .object({
@@ -93,16 +93,9 @@ const ResetMasterPassword = ({ onSuccess }: ResetMasterPasswordProps) => {
       const newAuthKeySalt = randomBytes(16);
       console.log("Deriving new keys with salts");
 
-      const newVaultKey = await deriveVaultKey(
-        data.new_password,
-        newVaultKeySalt,
-        125000,
-      );
-      const newAuthKey = await deriveAuthKey(
-        data.new_password,
-        newAuthKeySalt,
-        125000,
-      );
+      const authKey = await argon2idRawKey(data.new_password, newAuthKeySalt);
+      const vaultRaw = await argon2idRawKey(data.new_password, newVaultKeySalt);
+      const vaultKey = await importAesGcmKey(vaultRaw);
 
       const passwords = await dispatch(fetchPasswords()).unwrap();
 
@@ -112,7 +105,7 @@ const ResetMasterPassword = ({ onSuccess }: ResetMasterPasswordProps) => {
         passwords.map(async (pwd) => {
           const encryptedPasswordPayload = {
             ...pwd,
-            password: await encryptString(pwd.password, newVaultKey),
+            password: await encryptString(pwd.password, vaultKey),
           };
 
           await dispatch(
@@ -134,10 +127,10 @@ const ResetMasterPassword = ({ onSuccess }: ResetMasterPasswordProps) => {
         }),
       );
 
-      setVaultKey(newVaultKey);
+      setVaultKey(vaultKey);
 
       await createMasterPasswordAPI({
-        authKey: newAuthKey,
+        authKey: authKey,
         authSalt: newAuthKeySalt,
         vaultSalt: newVaultKeySalt,
       });

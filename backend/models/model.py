@@ -24,14 +24,16 @@ class User(Base):
     master_password_set = Column(Boolean, default=False, nullable=False)
 
     # Auth (challenge–response)
-    auth_algo = Column(String, nullable=True)           # "PBKDF2-SHA256"
-    auth_iterations = Column(Integer, nullable=True)
+    auth_algo = Column(String, nullable=True)           # "Argon2id-13"
+    auth_ops_limit = Column(Integer, nullable=True)
+    auth_mem_limit_kib = Column(Integer, nullable=True)
     auth_salt_b64u = Column(String, nullable=True)
     auth_verifier_b64u = Column(String, nullable=True)  # 32B key (base64url)
 
     # Vault KDF
     vault_algo = Column(String, nullable=True)
-    vault_iterations = Column(Integer, nullable=True)
+    vault_ops_limit = Column(Integer, nullable=True)
+    vault_mem_limit_kib = Column(Integer, nullable=True)
     vault_salt_b64u = Column(String, nullable=True)
 
     tokens = relationship("AuthToken", back_populates="user",
@@ -71,7 +73,7 @@ class Passwords(Base):
                 index=True, default=uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey(
         "users.id"), nullable=False)
-    service_name = Column(String, ForeignKey("services.name"), nullable=False)
+    service_name = Column(String, nullable=False)
     username = Column(String, nullable=False)
     ciphertext_b64u = Column(String, nullable=False)
     iv_b64u = Column(String, nullable=False)

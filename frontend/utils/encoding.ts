@@ -1,8 +1,8 @@
 export const enc = new TextEncoder();
 export const dec = new TextDecoder();
 
-export const bufferToBase64Url = (buffer: ArrayBuffer) : string => {
-    const bytes = new Uint8Array(buffer);
+export const bufferToBase64Url = (buffer: ArrayBuffer | Uint8Array) : string => {
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
     let str = "";
     for (let i = 0; i < bytes.byteLength; i++) {
         str += String.fromCharCode(bytes[i]);

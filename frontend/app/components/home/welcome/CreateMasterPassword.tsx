@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 import { randomBytes, bufferToBase64Url } from "@/utils/encoding";
-import { deriveAuthKey, deriveVaultKey } from "@/crypto/kdf";
 
 import {
   Dialog,
@@ -23,10 +22,13 @@ import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/store/store";
 import { getUserProfile } from "@/store/slices/userSlice";
+import { argon2idRawKey, importAesGcmKey } from "@/crypto/argon2id";
+import { getSodium } from "@/crypto/sodium";
 
 const CreateMasterPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
 
@@ -47,50 +49,95 @@ const CreateMasterPassword = () => {
       return;
     }
 
-    const authSalt = randomBytes(16);
-    const vaultSalt = randomBytes(16);
+    if (isLoading) return;
 
-    const authKey = await deriveAuthKey(password, authSalt, 125000);
-    const vaultKey = await deriveVaultKey(password, vaultSalt, 125000);
+    setIsLoading(true);
+    const loadingToast = toast.loading("Creating your master password...");
 
-    const response = await fetch(
-      "http://localhost:8000/api/v1/auth/master_password",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          auth_algo: "PBKDF2-SHA256",
-          auth_iterations: 125000,
-          auth_salt_b64u: bufferToBase64Url(authSalt),
-          auth_verifier_b64u: bufferToBase64Url(authKey),
-          vault_kdf: {
-            algo: "PBKDF2-SHA256",
-            iterations: 125000,
-            salt_b64u: bufferToBase64Url(vaultSalt),
-          },
-        }),
-        credentials: "include",
-      },
-    );
+    try {
+      // Load initialized sodium instance
+      const sodium = await getSodium();
 
-    const result = await response.json();
+      const authSalt = randomBytes(16);
+      const vaultSalt = randomBytes(16);
 
-    if (!response.ok) {
-      toast.error(
-        result.detail || "Failed to create master password. Please try again.",
+      // Use INTERACTIVE limits for better client-side performance
+      // Still secure but much faster than MODERATE/SENSITIVE
+      const authOps = sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE;
+      const vaultOps = sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE;
+
+      const authMem = sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE;
+      const vaultMem = sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE;
+
+      // Allow UI to update before heavy computation
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const authKey = await argon2idRawKey(
+        password,
+        authSalt,
+        authOps,
+        authMem,
       );
-      return;
+      const vaultRaw = await argon2idRawKey(
+        password,
+        vaultSalt,
+        vaultOps,
+        vaultMem,
+      );
+      const vaultKey = await importAesGcmKey(vaultRaw);
+
+      const response = await fetch(
+        "http://localhost:8000/api/v1/auth/master_password",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            auth_algo: "Argon2id-13",
+            auth_ops_limit: authOps,
+            auth_mem_limit_kib: authMem,
+            auth_salt_b64u: bufferToBase64Url(authSalt),
+            auth_verifier_b64u: bufferToBase64Url(authKey),
+            vault_kdf: {
+              algo: "Argon2id-13",
+              ops_limit: vaultOps,
+              mem_limit_kib: vaultMem,
+              salt_b64u: bufferToBase64Url(vaultSalt),
+            },
+          }),
+          credentials: "include",
+        },
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(
+          result.detail ||
+            "Failed to create master password. Please try again.",
+          { id: loadingToast },
+        );
+        return;
+      }
+
+      setVaultKey(vaultKey);
+      await dispatch(getUserProfile()).unwrap();
+
+      toast.success("Master password created successfully!", {
+        id: loadingToast,
+      });
+      setPassword("");
+      setConfirmPassword("");
+      router.push("/passwords");
+    } catch (error) {
+      console.error("Error creating master password:", error);
+      toast.error("An unexpected error occurred. Please try again.", {
+        id: loadingToast,
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    setVaultKey(vaultKey);
-    await dispatch(getUserProfile()).unwrap();
-
-    toast.success("Master password created successfully!");
-    setPassword("");
-    setConfirmPassword("");
-    router.push("/passwords");
   };
 
   return (
@@ -140,7 +187,7 @@ const CreateMasterPassword = () => {
                   handleCreateMasterPassword(e);
                 }}
               >
-                Confirm
+                {isLoading ? "Creating..." : "Confirm"}
               </Button>
             </div>
           </DialogContent>
