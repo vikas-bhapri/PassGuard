@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -40,7 +41,7 @@ const formSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters long"),
 });
 
-const AddPasswordDialog = () => {
+const AddPasswordDialog = ({ onSuccess }: { onSuccess: () => void }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [submitting, setSubmitting] = useState(false);
   const serviceState = useSelector(
@@ -61,10 +62,11 @@ const AddPasswordDialog = () => {
     setSubmitting(true);
 
     try {
-      const result = await dispatch(addPassword(data)).unwrap();
+      await dispatch(addPassword(data)).unwrap();
 
       toast.success("Password added successfully!");
       formData.reset();
+      onSuccess?.();
     } catch (error) {
       console.error("Failed to add password:", error);
       let errorMessage = "Failed to add password";
@@ -74,7 +76,6 @@ const AddPasswordDialog = () => {
         errorMessage = error.message;
       }
       toast.error(errorMessage);
-      throw error;
     } finally {
       setSubmitting(false);
     }
@@ -84,6 +85,9 @@ const AddPasswordDialog = () => {
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Add New Password</DialogTitle>
+        <DialogDescription>
+          Fill in the details below to add a new password to your vault.
+        </DialogDescription>
       </DialogHeader>
       <form onSubmit={formData.handleSubmit(onSubmit)}>
         <FieldGroup>

@@ -34,9 +34,11 @@ const ListPasswords = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLocked, setIsLocked] = useState(true);
   const [masterPassword, setMasterPassword] = useState("");
+  const [addPasswordOpen, setAddPasswordOpen] = useState(false);
   const [serviceImages, setServiceImages] = useState<Record<string, string>>(
     {},
   );
+  const [searchQuery, setSearchQuery] = useState("");
 
   const passwords = useSelector(
     (state: RootState) => state.passwords.passwords,
@@ -93,6 +95,15 @@ const ListPasswords = () => {
     }
   };
 
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+  };
+
+  const filteredPasswords = passwords.filter((pwd) =>
+    pwd.service.toLowerCase().includes(searchQuery),
+  );
+
   return (
     <div className="w-9/10 mx-auto">
       {isLocked || !hasVaultKey() ? (
@@ -107,7 +118,7 @@ const ListPasswords = () => {
               placeholder="Enter your master password"
               value={masterPassword}
               onChange={(e) => setMasterPassword(e.target.value)}
-              className="w-75 min-w-62.5"
+              className="w-75 min-w-62.5 bg-background"
             />
             <Button
               className="w-37.5 min-w-25"
@@ -130,6 +141,10 @@ const ListPasswords = () => {
               </Button>
             </div>
             <div className="flex items-center gap-2">
+              <h1>Search </h1>
+              <Input placeholder="Search by services" onChange={handleSearch} />
+            </div>
+            <div className="flex items-center gap-2">
               <h1>Generate new password</h1>
               <Dialog>
                 <DialogTrigger asChild>
@@ -140,22 +155,30 @@ const ListPasswords = () => {
             </div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg">Add new password here</h1>
-              <Dialog modal={false}>
+              <Dialog
+                modal={false}
+                open={addPasswordOpen}
+                onOpenChange={setAddPasswordOpen}
+              >
                 <DialogTrigger asChild>
                   <Button variant="secondary">Add New Password</Button>
                 </DialogTrigger>
 
-                <AddPasswordDialog />
+                <AddPasswordDialog
+                  onSuccess={() => setAddPasswordOpen(false)}
+                />
               </Dialog>
             </div>
           </div>
 
-          {passwords.length === 0 ? (
+          {filteredPasswords.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
-              No passwords stored yet. Add your first password!
+              {searchQuery
+                ? "No passwords match your search."
+                : "No passwords stored yet. Add your first password!"}
             </div>
           ) : (
-            passwords.map((pwd) => (
+            filteredPasswords.map((pwd) => (
               <PasswordCard
                 password={pwd.password}
                 service={pwd.service}

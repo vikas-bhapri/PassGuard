@@ -1,7 +1,21 @@
+"use client";
+
+import { useSelector } from "react-redux";
+
+import { useRouter } from "next/navigation";
+
 import CreateMasterPassword from "@/app/components/home/welcome/CreateMasterPassword";
 import WelcomeHero from "@/app/components/home/welcome/Hero";
 
 const WelcomePage = () => {
+  const user = useSelector((state: any) => state.user.user);
+  const router = useRouter();
+
+  if (user.new_user == false || user.master_password_set == true) {
+    router.push("/passwords");
+    return;
+  }
+
   return (
     <div className="container mx-auto flex flex-col items-center justify-center min-h-screen py-10">
       <div className="border-3 border-slate-500 rounded-2xl py-15 px-15">

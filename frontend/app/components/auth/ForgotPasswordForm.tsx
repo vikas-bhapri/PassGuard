@@ -39,12 +39,11 @@ const ForgotPasswordForm = () => {
     setSubmitting(true);
 
     try {
-      await requestPasswordResetAPI(data.email);
-
       // Always show success message for security (don't reveal if email exists)
       toast.success(
         "If an account with that email exists, you will receive password reset instructions shortly.",
       );
+      requestPasswordResetAPI(data.email);
 
       formData.reset();
     } catch (error) {

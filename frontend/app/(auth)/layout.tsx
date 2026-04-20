@@ -21,7 +21,6 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
       </div>
       <div className="flex flex-col min-h-screen items-center justify-center bg-background w-full md:min-w-[60%]">
         <div className="md:hidden text-center flex flex-col items-center gap-6 justify-center mb-5 w-9/10">
-          <HeroImg />
           <h1 className="text-4xl font-semibold">PassGuard</h1>
           <p className="text-xl">
             Create and manage your passwords with ease. We follow zero-knowledge

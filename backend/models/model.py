@@ -42,6 +42,8 @@ class User(Base):
         "Passwords", back_populates="user", cascade="all, delete-orphan")
     password_reset_tokens = relationship(
         "PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
+    todo_lists = relationship(
+        "ToDoList", back_populates="user", cascade="all, delete-orphan")
 
 
 class AuthToken(Base):
@@ -96,3 +98,20 @@ class PasswordResetToken(Base):
     used = Column(Boolean, default=False, nullable=False)
 
     user = relationship("User", back_populates="password_reset_tokens")
+
+
+class ToDoList(Base):
+    __tablename__ = "todo_lists"
+
+    id = Column(UUID(as_uuid=True), primary_key=True,
+                index=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey(
+        "users.id"), nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    complete_by = Column(DateTime, nullable=False)
+    is_completed = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, onupdate=datetime.utcnow, nullable=True)
+
+    user = relationship("User", back_populates="todo_lists")

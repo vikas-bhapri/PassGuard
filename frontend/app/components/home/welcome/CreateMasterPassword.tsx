@@ -24,6 +24,7 @@ import { AppDispatch } from "@/store/store";
 import { getUserProfile } from "@/store/slices/userSlice";
 import { argon2idRawKey, importAesGcmKey } from "@/crypto/argon2id";
 import { getSodium } from "@/crypto/sodium";
+import { createMasterPasswordAPI } from "@/store/api/authAPI";
 
 const CreateMasterPassword = () => {
   const [password, setPassword] = useState("");
@@ -86,40 +87,11 @@ const CreateMasterPassword = () => {
       );
       const vaultKey = await importAesGcmKey(vaultRaw);
 
-      const response = await fetch(
-        "http://localhost:8000/api/v1/auth/master_password",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            auth_algo: "Argon2id-13",
-            auth_ops_limit: authOps,
-            auth_mem_limit_kib: authMem,
-            auth_salt_b64u: bufferToBase64Url(authSalt),
-            auth_verifier_b64u: bufferToBase64Url(authKey),
-            vault_kdf: {
-              algo: "Argon2id-13",
-              ops_limit: vaultOps,
-              mem_limit_kib: vaultMem,
-              salt_b64u: bufferToBase64Url(vaultSalt),
-            },
-          }),
-          credentials: "include",
-        },
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast.error(
-          result.detail ||
-            "Failed to create master password. Please try again.",
-          { id: loadingToast },
-        );
-        return;
-      }
+      await createMasterPasswordAPI({
+        authKey: authKey,
+        authSalt: authSalt,
+        vaultSalt: vaultSalt,
+      });
 
       setVaultKey(vaultKey);
       await dispatch(getUserProfile()).unwrap();
@@ -127,6 +99,9 @@ const CreateMasterPassword = () => {
       toast.success("Master password created successfully!", {
         id: loadingToast,
       });
+
+      await dispatch(getUserProfile()).unwrap();
+
       setPassword("");
       setConfirmPassword("");
       router.push("/passwords");

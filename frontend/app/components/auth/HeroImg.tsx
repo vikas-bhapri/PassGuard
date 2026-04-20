@@ -9,7 +9,6 @@ import { usePathname } from "next/navigation";
 
 const HeroImg = () => {
   const pathname = usePathname();
-  console.log("Current pathname:", pathname);
 
   let imageSrc;
   if (pathname === "/sign-in") {
@@ -27,6 +26,7 @@ const HeroImg = () => {
       src={imageSrc}
       alt="Authentication Image"
       className="w-full h-auto object-cover rounded-lg"
+      loading="eager"
     />
   );
 };

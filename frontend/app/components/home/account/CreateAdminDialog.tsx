@@ -67,7 +67,7 @@ const SignUpForm = () => {
         }),
       ).unwrap();
 
-      toast.success("Signed up successfully! Redirecting to sign in...");
+      toast.success("Admin account created successfully!");
       formData.reset();
     } catch (error) {
       console.error("Sign up error:", error);

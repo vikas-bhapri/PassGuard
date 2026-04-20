@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -113,6 +114,9 @@ export const EditPasswordDialog = ({
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Edit Password</DialogTitle>
+        <DialogDescription>
+          Update the details of your password entry below.
+        </DialogDescription>
       </DialogHeader>
       <form onSubmit={formData.handleSubmit(onSubmit)}>
         <FieldGroup>

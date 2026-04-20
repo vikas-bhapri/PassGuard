@@ -91,7 +91,6 @@ const ResetMasterPassword = ({ onSuccess }: ResetMasterPasswordProps) => {
       // Create new salts and derive new keys
       const newVaultKeySalt = randomBytes(16);
       const newAuthKeySalt = randomBytes(16);
-      console.log("Deriving new keys with salts");
 
       const authKey = await argon2idRawKey(data.new_password, newAuthKeySalt);
       const vaultRaw = await argon2idRawKey(data.new_password, newVaultKeySalt);

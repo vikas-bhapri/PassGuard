@@ -7,6 +7,7 @@ import userReducer from "./slices/userSlice";
 import kdfReducer from "./slices/kdfSlice";
 import passwordReducer from "./slices/passwordSlice";
 import servicesReducer from "./slices/servicesSlice";
+import todoReducer from "./slices/todoSlice";
 
 const persistConfig = {
     key: 'root',
@@ -19,6 +20,7 @@ const rootReducer = combineReducers({
     kdf: kdfReducer,
     passwords: passwordReducer,
     services: servicesReducer,
+    todos: todoReducer,
 })
 
 export const persistedReducer = persistReducer(persistConfig, rootReducer);
